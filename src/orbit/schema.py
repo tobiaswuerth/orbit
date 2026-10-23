@@ -180,6 +180,7 @@ TYPES = {
                 Field("orgs", "link", many=True, to=_orgs),
                 Field("people", "link", many=True, to=_people),
                 _documents,
+                Field("merged_from", "id", many=True, managed=True),
                 Field("distinct_from", "link", many=True, to=(TOPIC,), managed=True),
             ),
             ("Notes", "Observations", "Documents", "History"),

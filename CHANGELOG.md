@@ -42,6 +42,7 @@ The owner's answers win, and take a click; people at their organization; organiz
   someone and isn't, so that the owner's answer couldn't merge them.
 - Two duplicate reviews of one pair, both answered yes, merge it once; the second no longer reports that it couldn't
   merge the note with itself.
+- A merged topic's `merged_from` is part of the topic schema: `lint_vault` no longer warns of it as unknown.
 
 ## [0.7.1] - 2026-10-23
 

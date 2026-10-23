@@ -53,7 +53,7 @@ too, so that links to them resolve, but only notes with a `type` are entities.
 | organization | `type`, `id`, `name`, `aliases`, `domains`, `uid_che`, `industry`, `location`, `address`, `website`, `parent`, `relationship` (client, prospect, partner, vendor, employer, personal), `merged_from`, `distinct_from`, `documents`, `created`, `updated` |
 | interaction | `type`, `id`, `kind` (email, meeting, call, message, note, automated), `date`, `direction` (inbound, outbound), `subject`, `from`, `to`, `cc`, `participants`, `mentioned`, `orgs`, `topics`, `language`, `message_id`, `in_reply_to`, `replies_to`, `thread`, `source_file`, `sha256`, `documents`, `created` |
 | task | `type`, `id`, `status` (open, waiting, done, cancelled), `due`, `due_note`, `owner`, `related`, `origin`, `created`, `updated` |
-| topic | `type`, `id`, `name`, `aliases`, `status` (active, paused, closed), `orgs`, `people`, `documents`, `distinct_from`, `created`, `updated` |
+| topic | `type`, `id`, `name`, `aliases`, `status` (active, paused, closed), `orgs`, `people`, `documents`, `merged_from`, `distinct_from`, `created`, `updated` |
 | review | `type`, `id`, `kind` (duplicate, job_change, address, other, question), `question`, `candidates`, `address`, `decision` (pending, same, different, yes, no, answered), `answer_yes`, `answer_no`, `answer`, `applied`, `source`, `created` |
 
 Relations are fields holding wikilinks, never nested mappings. `documents` refers to documents outside the vault, each

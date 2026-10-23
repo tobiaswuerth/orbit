@@ -198,6 +198,8 @@ def test_merging_organizations_and_topics(crm):
     assert result["name"] == "Acme AG"
     upkeep.merge(crm, "Wartungsvertrag 2027", "Wartung", CHAT)
     assert fields(crm, "Wartungsvertrag 2027")["aliases"] == ["Wartung"]
+    assert fields(crm, "Wartungsvertrag 2027")["merged_from"] == ["top_01M4WNN9104FB139QPZ3HYZ1VN"]  # the newer id
+    assert [i for i in lint(crm)["issues"] if i["note"] == "Wartungsvertrag 2027"] == []  # a field of topics too
 
 
 def test_a_second_merge_into_the_trash_keeps_both(crm):
