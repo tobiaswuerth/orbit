@@ -1,0 +1,53 @@
+# What is due: tasks, and people to get back to. Written by orbit init; change it as you like.
+properties:
+  file.name:
+    displayName: Task
+  due_note:
+    displayName: As stated
+  next_followup:
+    displayName: Follow up
+views:
+  - type: table
+    name: Open tasks
+    filters:
+      and:
+        - file.inFolder("04_Tasks")
+        - 'status == "open"'
+    order:
+      - file.name
+      - due
+      - due_note
+      - related
+      - origin
+    sort:
+      - property: due
+        direction: ASC
+  - type: table
+    name: Waiting for others
+    filters:
+      and:
+        - file.inFolder("04_Tasks")
+        - 'status == "waiting"'
+    order:
+      - file.name
+      - owner
+      - due
+      - due_note
+      - origin
+    sort:
+      - property: due
+        direction: ASC
+  - type: table
+    name: People to follow up
+    filters:
+      and:
+        - file.inFolder("01_People")
+        - 'if(next_followup, date(next_followup) <= today() + "14d", false)'
+    order:
+      - file.name
+      - org
+      - next_followup
+      - last_contact
+    sort:
+      - property: next_followup
+        direction: ASC

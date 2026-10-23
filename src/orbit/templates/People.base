@@ -1,0 +1,61 @@
+# The people in the CRM. Written by orbit init; change it as you like, orbit won't overwrite it.
+filters:
+  and:
+    - file.inFolder("01_People")
+    - 'type == "person"'
+properties:
+  file.name:
+    displayName: Name
+  job_title:
+    displayName: Job title
+  last_contact:
+    displayName: Last contact
+  next_followup:
+    displayName: Follow up
+  review_status:
+    displayName: Review
+views:
+  - type: table
+    name: People
+    order:
+      - file.name
+      - org
+      - job_title
+      - emails
+      - context
+      - last_contact
+      - next_followup
+    sort:
+      - property: file.name
+        direction: ASC
+  - type: table
+    name: By organization
+    groupBy:
+      property: org
+      direction: ASC
+    order:
+      - file.name
+      - job_title
+      - department
+      - emails
+      - last_contact
+    sort:
+      - property: file.name
+        direction: ASC
+  - type: table
+    name: Not contacted for a year
+    filters: 'if(last_contact, date(last_contact) < today() - "365d", false)'
+    order:
+      - file.name
+      - org
+      - last_contact
+    sort:
+      - property: last_contact
+        direction: ASC
+  - type: table
+    name: To confirm
+    filters: 'review_status == "needs_review"'
+    order:
+      - file.name
+      - emails
+      - created

@@ -1,0 +1,43 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you or the agent did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Commands, or the tool calls with their arguments. A note that shows the problem helps most.
+      placeholder: |
+        orbit init ~/crm
+        upsert_person(match="new", fields={...}, ...)
+        ...
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The full output of the failing command, or the tool's error.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: orbit version
+      description: Output of `orbit --version`.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Python version, and how you installed orbit (uv, pip).
+      placeholder: Windows 11, Python 3.12, uv tool install
+    validations:
+      required: true

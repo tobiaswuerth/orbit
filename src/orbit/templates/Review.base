@@ -1,0 +1,34 @@
+# Questions orbit has for you. Answer one by setting its decision, or an open question by writing its answer.
+# Written by orbit init; change it as you like.
+filters:
+  and:
+    - file.inFolder("90_Review")
+    - 'type == "review"'
+properties:
+  file.name:
+    displayName: Review
+views:
+  - type: table
+    name: Pending reviews
+    filters: 'decision == "pending"'
+    order:
+      - file.name
+      - question
+      - candidates
+      - decision
+      - answer
+    sort:
+      - property: created
+        direction: ASC
+  - type: table
+    name: Answered
+    filters: 'decision != "pending"'
+    order:
+      - file.name
+      - question
+      - decision
+      - answer
+      - applied
+    sort:
+      - property: created
+        direction: DESC

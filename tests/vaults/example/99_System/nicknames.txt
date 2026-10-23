@@ -1,0 +1,10 @@
+# First names that can stand for one another, one group per line. Used for candidates only.
+Hans = Hansi = Hansruedi
+Rudolf = Ruedi
+Jakob = Köbi
+Christian = Chrigu = Chrigi
+Franziska = Fränzi = Franzi
+Ulrich = Ueli
+Andreas = Res = Andi
+Daniel = Dani = Dänu
+Thomas = Thomi = Tom

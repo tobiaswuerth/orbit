@@ -1,0 +1,20 @@
+# orbit's configuration for this vault.
+
+me = "per_01M3V0RPR04X2CSM8CEMSVTWVA"  # the id of 01_People/Me.md
+
+[server]
+host = "127.0.0.1"
+port = 8775
+# tools = ["read", "write", "upkeep"]  # what /mcp offers, all by default; /mcp/write and /mcp/read offer less
+
+[identity]
+# Addresses at these domains say nothing about a person's employer.
+free_mail_domains = [
+  "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "icloud.com", "me.com",
+  "yahoo.com", "proton.me", "protonmail.com", "gmx.ch", "gmx.net", "bluewin.ch", "sunrise.ch",
+]
+# Local parts of addresses that belong to a role or a mailbox, never to a person.
+role_addresses = [
+  "info", "noreply", "no-reply", "donotreply", "team", "sales", "support", "office", "hello", "contact",
+  "admin", "newsletter",
+]
