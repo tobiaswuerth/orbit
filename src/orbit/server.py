@@ -325,8 +325,9 @@ def build(crm, tools=None):
         one in the vault (by `in_reply_to` or `references`) links it in `replies_to`, and the answer then holds its
         `thread`: the interactions in it, their topics and the open tasks they gave rise to. Read those before
         create_task: a commitment repeated in a reply is likely one of them. `open_tasks` lists the other open tasks
-        of the people and organizations it is with: one it settles (a refund that came, an answer given) is
-        update_task's to close. Tasks it gives rise to come from create_task, which lists them under Action items."""
+        of the people and organizations it is with, up to 20 (`open_tasks_more` counts the rest): one it settles (a
+        refund that came, an answer given) is update_task's to close. Tasks it gives rise to come from create_task,
+        which lists them under Action items."""
         return _run(
             writes.log_interaction,
             crm,

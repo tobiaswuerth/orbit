@@ -913,6 +913,14 @@ def test_an_email_lists_the_open_tasks_of_whom_it_is_with(crm):
     assert "open_tasks" not in alone  # the owner's own tasks aren't listed for every note they are in
 
 
+def test_an_email_lists_a_bounded_number_of_open_tasks(crm, monkeypatch):
+    # An organization with many open tasks would fill the agent's context with every email it is in.
+    monkeypatch.setattr(writes, "OPEN_TASKS", 1)
+    result = writes.log_interaction(crm, "email", "2026-10-21T09:00:00+02:00", subject="Hallo", to=["Me"],
+                                    orgs=["Acme AG"])  # fmt: skip
+    assert (len(result["open_tasks"]), result["open_tasks_more"]) == (1, 1)
+
+
 def test_an_organization_can_owe_the_owner_a_task(crm):
     # A shop's refund or a provider's fix is the company's to do, not one person's: agents were refused 25 times.
     result = writes.create_task(crm, "Refund the cancelled order", "Acme AG", EMAIL, status="waiting")

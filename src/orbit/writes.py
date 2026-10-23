@@ -17,6 +17,7 @@ RELATIONS = {
     TOPIC: ("orgs", "people"),
 }
 CONTACTED = ("from", "to", "cc", "participants")  # the people an interaction counts as contact with; not `mentioned`
+OPEN_TASKS = 20  # of those whom an interaction is with, the most log_interaction lists; it counts the rest
 MANAGED = {
     "last_contact": "log_interaction sets it",
     "distinct_from": "answered reviews set it",
@@ -555,7 +556,8 @@ def log_interaction(
     threaded = _thread_of(crm, note.path)
     in_thread = {t["name"] for t in threaded.get("thread", {}).get("open_tasks", [])}
     if tasks := [t for t in _open_tasks(crm, fields) if t["name"] not in in_thread]:
-        extra["open_tasks"] = tasks
+        extra["open_tasks"] = tasks[:OPEN_TASKS]
+        extra |= {"open_tasks_more": len(tasks) - OPEN_TASKS} if len(tasks) > OPEN_TASKS else {}
     return _result(created, changes, existing=False, **extra, **threaded)
 
 
