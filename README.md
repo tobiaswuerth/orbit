@@ -22,7 +22,8 @@ person, an organization or an interaction is, and keep the vault trustworthy:
   agent's: a duplicate confirmed is merged, an address confirmed is added, a job change confirmed is made. What you
   answered is never asked again.
 - **People at their organization.** A person whose address is at an organization's domain, or under it
-  (`students.school.example`, `school.example`), gets that organization when none is given; `link_by_domain` links those already there.
+  (`students.school.example`, `school.example`), gets that organization when none is given; `link_by_domain` links
+  those already there.
 - **Evidence as written.** An observation's quote must be in the email it comes from, word for word.
 - **No invented fields.** Every write is checked against the schema of its note type. Fields you add by hand are kept.
 - **Every fact with its source.** Observations carry the words that state them and the interaction they come from;
