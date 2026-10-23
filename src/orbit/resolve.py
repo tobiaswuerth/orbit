@@ -57,9 +57,8 @@ def resolve(
 def _candidates(crm, type, query):
     """The paths worth scoring: those sharing an identifier with the query."""
     pairs = [("email", e) for e in query["emails"]] + [("domain", d) for d in query["domains"]]
-    if (
-        type == schema.ORGANIZATION
-    ):  # an address at a subdomain is the organization's too: students.school.example, school.example
+    # An address at a subdomain is the organization's too: students.school.example, school.example
+    if type == schema.ORGANIZATION:
         pairs += [("domain", p) for d in query["domains"] for p in names.parent_domains(d)]
     pairs += [("phone", query["phone"])] if query["phone"] else []
     pairs += [("uid", query["uid"])] if query["uid"] else []
