@@ -18,8 +18,11 @@ person, an organization or an interaction is, and keep the vault trustworthy:
   and company domain, each with its evidence. The agent decides, and orbit checks it when the note is created: a
   "new" person whose address is known, or a person, organization or topic too like one there (the same name, its
   initials, most of its words) is refused with the notes it is like, so that two agents at once create one note,
-  not two. Unsure cases become questions you answer in Obsidian, whose answers act: a duplicate decided `same` is
-  merged, an address confirmed is added, a job change confirmed is made.
+  not two. Unsure cases become questions you answer in Obsidian with one click, whose answers act and win over any
+  agent's: a duplicate confirmed is merged, an address confirmed is added, a job change confirmed is made. What you
+  answered is never asked again.
+- **People at their organization.** A person whose address is at an organization's domain, or under it
+  (`students.school.example`, `school.example`), gets that organization when none is given; `link_by_domain` links those already there.
 - **Evidence as written.** An observation's quote must be in the email it comes from, word for word.
 - **No invented fields.** Every write is checked against the schema of its note type. Fields you add by hand are kept.
 - **Every fact with its source.** Observations carry the words that state them and the interaction they come from;
@@ -53,7 +56,8 @@ orbit init ~/crm --name "Tobias" --email tobias@example.com
 Open the folder as a vault in Obsidian. `orbit init` also writes three [Bases](https://obsidian.md/help/bases) views
 to `95_Bases/`, tables you can sort, filter and edit in place: **People** (everyone, by organization, not contacted
 for a year, to confirm), **Follow-ups** (open tasks, tasks others owe you, people to get back to within two weeks)
-and **Review** (questions waiting for your answer). Run `orbit init` on an existing vault to add what it lacks; it
+and **Review** (questions waiting for your answer: tick Yes or No, or type your answer to an open question). Run
+`orbit init` on an existing vault to add what it lacks; it
 never overwrites a file, so it leaves an existing `Me.md` as it is: add more addresses to its `emails` yourself. As
 long as `Me.md` has none, `orbit init` says so.
 
@@ -169,17 +173,18 @@ merged, and to keep its links pointing at renamed notes. An example vault with a
 | `get_entity_context` | A note's fields, observations, last field changes, links in and out, recent interactions, open tasks and pending reviews; for an email, its thread with its topics and open tasks. |
 | `search_entities` | Full-text and fuzzy search over names, aliases, addresses, domains, job titles and notes. |
 | `list_entities` | Queries over front-matter fields: everyone at an organization, open tasks due before a date, people not contacted since. |
-| `log_interaction` | An email, meeting, call or message, with its people by name or address; linked to the email it answers, and answered with its thread. Idempotent, and a retry learns what is recorded already. |
-| `upsert_person`, `upsert_organization`, `upsert_topic` | Create a record, or add to one: lists merged, empty fields filled, conflicts reported. A new one too like one there is refused, unless it is said to be another (`distinct_from`). |
+| `log_interaction` | An email, meeting, call or message, with its people by name or address; linked to the email it answers, and answered with its thread and the open tasks of whom it is with, which it may settle. Idempotent, and a retry learns what is recorded already. |
+| `upsert_person`, `upsert_organization`, `upsert_topic` | Create a record, or add to one: lists merged, empty fields filled, conflicts reported. A new one too like one there is refused, unless it is said to be another (`distinct_from`) or is created provisional, for you to decide. A person without an organization gets the one their address is at. |
 | `link_entities` | Set relations from a fixed vocabulary, one or several at once: `org`, `reports_to`, `colleague_of` (both ways), an interaction's people, … |
 | `link_document` | Record a document outside the vault: a URL, a path or an id. |
 | `add_observation` | A fact with its evidence quote, source and confidence. |
 | `set_fields` | Change fields with a dated history line; a change older than the stored value becomes an observation instead. Takes items out of lists too (a wrong address, a former organization no one stated). |
-| `create_task`, `update_task` | What you promised, what was asked of you, and what others promised you; a task like an open one of the same thread is refused until confirmed. |
-| `propose_review` | A question for you, answered in Obsidian: a duplicate (people, organizations, topics) decided `same` (or `yes`) is merged, one decided `different` (or `no`) is recorded on both notes; an address confirmed is added, a job change confirmed is made. An open question you answer in your own words, for an agent to act on. |
+| `create_task`, `update_task` | What you promised, what was asked of you, and what others, people or organizations, promised you; a task like an open one of the same thread is refused until confirmed. |
+| `propose_review` | A question for you, answered in Obsidian with a tick: a duplicate (people, organizations, topics) answered Yes is merged, even where an agent recorded the two as different, one answered No is recorded on both notes; an address confirmed is added, a job change confirmed is made. An open question you answer in your own words, for an agent to act on. Asking again returns your answer. |
 | `settle_review` | What an agent did with your answer, recorded on the review, once. |
 | `merge_entities` | Two notes about the same person, organization or topic become one; links follow, differing values go to review. |
 | `rename_entity` | A new name and file name; every link to the note follows. |
+| `link_by_domain` | People without an organization linked to the one their address is at, or under. |
 | `create_missing_references` | Notes for links to notes that don't exist yet: mapped to an alias, or a stub of the type the link's field asks for. |
 | `lint_vault` | Schema conformance, duplicate ids and addresses, clashing file names, broken links, unknown fields; `fix` repairs the safe cases. |
 
@@ -213,7 +218,9 @@ tools' schemas, for the agents that read them.
 
 `99_System/nicknames.txt` lists first names that stand for one another, one group per line: `Hans = Hansi =
 Hansruedi`. The one environment variable, `ORBIT_HOME` (default `~/.orbit/`), says where the indexes live: outside
-the vault, one database per vault, so sync tools never see a live database.
+the vault, one database per vault, so sync tools never see a live database. Each run of `orbit serve` writes what it
+says, with the time of each line, to a log of its own there, `logs/serve-2026-10-23_210509.log`; the newest 100 are
+kept.
 
 ## How it works
 

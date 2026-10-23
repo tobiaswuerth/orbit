@@ -1,11 +1,15 @@
 """What orbit tells the user while it works. It all goes to stderr, so stdout stays for the CLI's results, and an MCP
-client on stdio never reads it as protocol."""
+client on stdio never reads it as protocol; and to the run's log file, if it has one (see logs)."""
 
+import logging
 import sys
+
+log = logging.getLogger("orbit")
 
 
 def say(*parts):
     print(*parts, file=sys.stderr, flush=True)
+    log.info(" ".join(map(str, parts)))
 
 
 def count(n, noun):

@@ -73,6 +73,16 @@ def thread(crm, interaction):
     }
 
 
+def open_tasks(crm, entities):
+    """The open tasks that link any of these notes (as owner, related or otherwise), each once."""
+    found = {}
+    for entity in entities:
+        for item in _links_in(crm, entity):
+            if item["type"] == schema.TASK and item.get("status") in OPEN:
+                found.setdefault(item["name"], item)
+    return list(found.values())
+
+
 def thread_members(crm, interaction):
     """The interactions in an interaction's thread, itself among them, oldest first."""
     keys = [k.strip() for k in (interaction.fields.get(f) for f in ("thread", "message_id")) if isinstance(k, str)]

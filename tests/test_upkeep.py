@@ -225,8 +225,12 @@ def test_people_recorded_as_different_arent_merged(crm):
     path = f"90_Review/{REVIEW}.md"
     edit(crm, path, "decision: pending", "decision: different")
     crm.refresh({path})
-    with pytest.raises(OrbitError, match=r"\[\[Hans Müller\]\] and \[\[Hans\]\] are recorded as different"):
+    with pytest.raises(OrbitError) as refused:
         upkeep.merge(crm, "Hans Müller", "Hans", CHAT)
+    assert str(refused.value) == (
+        "[[Hans Müller]] and [[Hans]] are recorded as different people; only the owner can say otherwise: "
+        "propose_review a duplicate, which returns their answer if they gave one, and their yes merges the two"
+    )
 
 
 # Reviews decided same
@@ -246,14 +250,51 @@ def test_a_review_decided_same_merges_into_the_older_note(crm):
 
 
 def test_a_review_decided_same_that_cant_be_merged_is_reported(crm):
-    edit(crm, "01_People/Hans.md", "review_status", 'distinct_from:\n  - "[[Hans Müller]]"\nreview_status')
+    edit(crm, "01_People/Hans.md", f"id: {HANS_ID}\n", "")
     path = f"90_Review/{REVIEW}.md"
     edit(crm, path, "decision: pending", "decision: same")
     crm.refresh()
     assert crm.vault.path("01_People/Hans.md").exists()
-    (issue,) = lint(crm)["issues"]
-    assert (issue["note"], issue["rule"]) == (REVIEW, "not applied")
-    assert issue["message"].startswith("decided same, but orbit couldn't merge them: [[Hans Müller]] and [[Hans]] are")
+    (issue,) = [i for i in lint(crm)["issues"] if i["rule"] == "not applied"]
+    assert issue["note"] == REVIEW
+    assert issue["message"] == (
+        "decided same, but orbit couldn't merge them: keep: [[Hans]] has no id yet; lint_vault with fix gives it one"
+    )
+
+
+# People linked to their address's organization
+
+
+def person(crm, name, *emails, extra=""):
+    listed = "".join(f"  - {e}\n" for e in emails)
+    crm.vault.write(
+        f"01_People/{name}.md", f"---\ntype: person\nid: {ULIDS[name]}\nname: {name}\nemails:\n{listed}{extra}---\n"
+    )
+
+
+ULIDS = {"Lea Frei": "per_01M4WNN44RG8NK7BC7R54A18H1", "Max Muster": "per_01M4WNN44RG8NK7BC7R54A18H2",
+         "Ida Graf": "per_01M4WNN44RG8NK7BC7R54A18H3"}  # fmt: skip
+
+
+def test_people_without_an_org_are_linked_to_their_address_s_organization(crm):
+    # People created before their organization, or by an import that left the org out, floated without it.
+    person(crm, "Lea Frei", "lea@acme-ag.example")
+    person(crm, "Max Muster", "max@gmail.com", "max@students.acme-ag.example")
+    person(crm, "Ida Graf", "ida@acme-ag.example", extra='org: "[[Beta AG]]"\n')
+    crm.refresh()
+    planned = upkeep.link_by_domain(crm, dry_run=True)
+    assert planned["linked"] == [
+        {"person": "[[Lea Frei]]", "org": "[[Acme AG]]", "address": "lea@acme-ag.example"},
+        {"person": "[[Max Muster]]", "org": "[[Acme AG]]", "address": "max@students.acme-ag.example"},
+    ]
+    assert (planned["changed"], "org" in fields(crm, "Lea Frei")) == ([], False)
+    done = upkeep.link_by_domain(crm)
+    assert (fields(crm, "Max Muster")["org"], len(done["changed"])) == ("[[Acme AG]]", 2)
+    assert "- 2026-10-22 · org: [[Acme AG]] · the address max@students.acme-ag.example\n" in text(
+        crm, "01_People/Max Muster.md")  # fmt: skip
+    assert fields(crm, "Ida Graf")["org"] == "[[Beta AG]]"
+    assert "org" not in fields(crm, "Me")
+    assert upkeep.link_by_domain(crm)["linked"] == []  # done once
 
 
 def test_me_keeps_its_name(crm):
@@ -304,9 +345,34 @@ def test_notes_without_ids_cant_be_merged_until_they_have_them(crm):
         upkeep.merge(crm, "Wartungsvertrag 2027", "Messe", CHAT)
 
 
+def test_a_person_broken_since_indexed_is_left_unlinked_and_said(crm):
+    person(crm, "Lea Frei", "lea@acme-ag.example")
+    crm.refresh()
+    edit(crm, "01_People/Lea Frei.md", "name: Lea Frei", "name: Lea Frei\nteam:\n  name: x")  # not indexed again yet
+    result = upkeep.link_by_domain(crm)
+    assert (result["linked"], [n["note"] for n in result["unreadable"]]) == ([], ["Lea Frei"])
+
+
 def test_a_review_broken_since_it_was_indexed_is_left_and_said(crm):
     path = f"90_Review/{REVIEW}.md"
     edit(crm, path, "decision: pending", "decision: pending\nteam:\n  name: x")  # not indexed again yet
     result = upkeep.merge(crm, "Hans Müller", "Hans", CHAT)
     assert [n["note"] for n in result["links_left"]] == [REVIEW]
     assert fields(crm, SAILING)["from"] == "[[Hans Müller]]"
+
+
+def test_a_review_broken_before_it_got_its_boxes_is_said(crm):
+    path = f"90_Review/{REVIEW}.md"
+    edit(crm, path, "answer_yes: false\nanswer_no: false\n", "")
+    crm.index.refresh([path])  # indexed without its boxes, which aren't added yet
+    edit(crm, path, "decision: pending", "decision: pending\nteam:\n  name: x")  # not indexed again yet
+    upkeep.apply_reviews(crm)
+    assert "can't be read" in crm.review_problems[path]
+
+
+def test_the_owner_s_same_keeps_what_else_was_recorded_as_different(crm):
+    edit(crm, "01_People/Hans.md", "review_status", 'distinct_from:\n  - "[[Hans Müller]]"\n  - "[[Anna Keller]]"\n'
+         "review_status")  # fmt: skip
+    crm.refresh()
+    upkeep.merge(crm, "Hans Müller", "Hans", f"[[{REVIEW}]]", overrule=True)
+    assert fields(crm, "Hans Müller")["distinct_from"] == ["[[Anna Keller]]"]

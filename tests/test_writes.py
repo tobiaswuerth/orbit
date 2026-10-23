@@ -124,6 +124,42 @@ def test_provisional_people_need_review(crm):
     assert fields(crm, result["id"])["review_status"] == "needs_review"
 
 
+def test_unsure_and_different_at_once_is_refused(crm):
+    # An import created a second note for one person as provisional, to be asked about, and recorded it as another
+    # person in the same call; the owner's answer that they are the same then couldn't merge them.
+    with pytest.raises(OrbitError, match="provisional says it may be one of them, distinct_from that it is not"):
+        writes.upsert_person(crm, "new", {"name": "Hans Müller"}, CHAT, "unsure", True, ["Hans Müller"])
+
+
+def test_a_new_person_at_an_organization_s_domain_works_there(crm):
+    # 19 people from a school's addresses floated without the school, which the vault knew by its domain.
+    result = writes.upsert_person(crm, "new", {"name": "Lea Frei", "emails": ["lea.frei@acme-ag.example"]}, CHAT, "x")
+    assert (fields(crm, result["id"])["org"], result["org_from_domain"]) == ("[[Acme AG]]", "[[Acme AG]]")
+    student = writes.upsert_person(crm, "new", {"name": "Max Muster", "emails": ["max@students.acme-ag.example"]},
+                                   CHAT, "x")  # fmt: skip
+    assert fields(crm, student["id"])["org"] == "[[Acme AG]]"  # a subdomain is the organization's too
+
+
+def test_an_org_from_the_domain_only_where_none_is_given(crm):
+    crm.vault.write(
+        "02_Organizations/Beta AG.md",
+        "---\ntype: organization\nid: org_01M4WNN44RG8NK7BC7R54A18GE\nname: Beta AG\n---\n",
+    )
+    crm.refresh()
+    given = writes.upsert_person(crm, "new", {"name": "Lea Frei", "emails": ["lea@acme-ag.example"], "org": "Beta AG"},
+                                 CHAT, "x")  # fmt: skip
+    assert (fields(crm, given["id"])["org"], "org_from_domain" in given) == ("[[Beta AG]]", False)
+    private = writes.upsert_person(crm, "new", {"name": "Max Muster", "emails": ["max@gmail.com"]}, CHAT, "x")
+    assert "org" not in fields(crm, private["id"])
+    writes.upsert_person(crm, "Me", {"emails": ["tobias@acme-ag.example"]}, CHAT)
+    assert "org" not in fields(crm, "Me")  # the owner's school or employer is theirs to say
+
+
+def test_a_known_person_without_org_gets_it_from_a_new_address(crm):
+    result = writes.upsert_person(crm, "Hans", {"emails": ["hans@acme-ag.example"]}, CHAT)
+    assert (fields(crm, "Hans")["org"], result["filled"]) == ("[[Acme AG]]", ["org"])
+
+
 def test_updating_a_person_merges_lists_fills_blanks_and_reports_conflicts(crm):
     result = writes.upsert_person(
         crm,
@@ -302,7 +338,7 @@ def test_log_interaction_lists_what_doesnt_exist_yet_and_logs_it_all_the_same(cr
         subject="Ausschreibung",
         sender="Lea Frei",
         to=["Me", "Marco Rossi"],
-        orgs=["Acme AG", "Beta Group AG"],
+        orgs=["Acme AG", "Gamma AG"],
         topics=["Wartungsvertrag 2027", "Ausschreibung 2028"],
     )
     logged = fields(crm, result["id"])
@@ -314,7 +350,7 @@ def test_log_interaction_lists_what_doesnt_exist_yet_and_logs_it_all_the_same(cr
     )
     assert (result["unknown_people"], result["unknown_orgs"], result["unknown_topics"]) == (
         ["Lea Frei", "Marco Rossi"],
-        ["Beta Group AG"],
+        ["Gamma AG"],
         ["Ausschreibung 2028"],
     )
     assert "upsert_organization" in result["hint"]
@@ -855,12 +891,32 @@ def test_a_task_from_a_topic_lists_itself_nowhere(crm):
         (" ", "Me", EMAIL, "title: what is to be done"),
         ("x", "Me", None, "origin: the interaction the task comes from"),
         ("x", None, EMAIL, "owner: who is to do it"),
-        ("x", "Acme AG", EMAIL, "is an organization, not a person"),
+        ("x", "Wartungsvertrag 2027", EMAIL, "is a topic, not a person or an organization"),
     ],
 )
 def test_create_task_refuses(crm, title, owner, origin, message):
     with pytest.raises(OrbitError, match=message):
         writes.create_task(crm, title, owner, origin)
+
+
+def test_an_email_lists_the_open_tasks_of_whom_it_is_with(crm):
+    # A later email often settles a task in another thread (the refund came, the answer arrived): agents never
+    # closed one, since they saw only the open tasks of the email's own thread.
+    result = writes.log_interaction(crm, "email", "2026-10-21T08:00:00+02:00", subject="Klärung erledigt",
+                                    sender="anna.keller@acme-ag.example", to=["Me"])  # fmt: skip
+    assert [(t["name"], t["status"]) for t in result["open_tasks"]] == [
+        ("Anna Keller to follow up on the technical clarification", "waiting")]  # fmt: skip
+    with_acme = writes.log_interaction(crm, "email", "2026-10-21T09:00:00+02:00", subject="Hallo", to=["Me"],
+                                       orgs=["Acme AG"])  # fmt: skip
+    assert len(with_acme["open_tasks"]) == 2
+    alone = writes.log_interaction(crm, "note", "2026-10-21", subject="Gedanken", participants=["Me"])
+    assert "open_tasks" not in alone  # the owner's own tasks aren't listed for every note they are in
+
+
+def test_an_organization_can_owe_the_owner_a_task(crm):
+    # A shop's refund or a provider's fix is the company's to do, not one person's: agents were refused 25 times.
+    result = writes.create_task(crm, "Refund the cancelled order", "Acme AG", EMAIL, status="waiting")
+    assert fields(crm, result["id"])["owner"] == "[[Acme AG]]"
 
 
 SEND = "Send revised offer for Wartungsvertrag 2027"

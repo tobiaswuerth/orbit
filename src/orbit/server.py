@@ -2,6 +2,7 @@
 for edits made in Obsidian while it runs."""
 
 import contextlib
+import datetime
 import json
 import logging
 import sqlite3
@@ -14,7 +15,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 from starlette.applications import Starlette
 
-from . import __version__, console, lint, reads, resolve, reviews, upkeep, watch, writes
+from . import __version__, console, lint, logs, reads, resolve, reviews, upkeep, watch, writes
 from .crm import Crm
 from .errors import OrbitError
 from .vault import CONFIG
@@ -42,7 +43,7 @@ GROUPS = {
         "propose_review",
         "settle_review",
     ),
-    "upkeep": ("merge_entities", "rename_entity", "create_missing_references", "lint_vault"),
+    "upkeep": ("merge_entities", "rename_entity", "link_by_domain", "create_missing_references", "lint_vault"),
 }
 ENDPOINTS = {"/mcp": None, "/mcp/write": ("read", "write"), "/mcp/read": ("read",)}  # None: all the vault serves
 
@@ -55,7 +56,7 @@ Rules:
 - Resolve before you write. Before creating a person or an organization, call resolve_entity with every name, address
   and domain you have, and read get_entity_context of likely candidates. Then decide: the same (pass its id as
   `match`), a different one (`match: "new"`), or unsure (create it with `provisional: true`, then propose_review, so
-  that the owner decides).
+  that the owner decides; not with distinct_from, which says you are sure).
 - Write only what a source states, and name it. Log an interaction first with log_interaction, then use it as the
   `source` of everything learnt from it; otherwise `source` is a short description such as "{owner} in chat,
   2026-10-22". Don't infer, guess or embellish: a stated fact is an observation, with the words that state it.
@@ -209,7 +210,8 @@ def build(crm, tools=None):
         matched (same email address, same name in any order, alias, initials, nickname, a name that sounds alike,
         same company domain, …) and enough context to decide: org, job title, addresses, last contact. You decide
         whether one is the same; read get_entity_context of a candidate if unsure. Pairs the owner marked as different
-        people come back with `distinct_from`. The owner's own addresses return Me. `notes` explains what was not looked
+        people come back with `distinct_from`. The owner's own addresses return Me. An organization is found by a
+        subdomain of its domain too (students.school.example, school.example). `notes` explains what was not looked
         for, such as role addresses (info@…) and free-mail domains."""
         return _run(resolve.resolve, crm, type, names, emails, domain, org, job_title, phone, uid_che, limit)
 
@@ -322,8 +324,9 @@ def build(crm, tools=None):
         it was with get their `last_contact` set if it is newer. An email that answers
         one in the vault (by `in_reply_to` or `references`) links it in `replies_to`, and the answer then holds its
         `thread`: the interactions in it, their topics and the open tasks they gave rise to. Read those before
-        create_task: a commitment repeated in a reply is likely one of them. Tasks it gives rise to come from
-        create_task, which lists them under Action items."""
+        create_task: a commitment repeated in a reply is likely one of them. `open_tasks` lists the other open tasks
+        of the people and organizations it is with: one it settles (a refund that came, an answer given) is
+        update_task's to close. Tasks it gives rise to come from create_task, which lists them under Action items."""
         return _run(
             writes.log_interaction,
             crm,
@@ -365,14 +368,19 @@ def build(crm, tools=None):
         source: Source,
         resolution_reason: Reason = None,
         provisional: Annotated[
-            bool, Field(description="Unsure it's new: mark it needs_review, then call propose_review.")
+            bool,
+            Field(
+                description="Unsure it's new: mark it needs_review, then call propose_review. Not with distinct_from."
+            ),
         ] = False,
         distinct_from: Distinct = None,
     ) -> dict:
         """Create a person, or add to one. Call resolve_entity first. On an existing person, lists (emails, aliases,
         phones, languages, …) gain the new items and empty fields are filled; a field that holds a different value is
         left alone and reported under `conflicts`, since changing it is set_fields' job. Colleagues are linked both
-        ways. A role address (info@…) is refused, and so is an address that belongs to someone else."""
+        ways. A role address (info@…) is refused, and so is an address that belongs to someone else. A person given no
+        org, with none yet, gets the organization whose domain their address is at, or under (`org_from_domain`); the
+        owner never does."""
         return _run(writes.upsert_person, crm, match, fields, source, resolution_reason, provisional, distinct_from)
 
     @mcp.tool(annotations=WRITE)
@@ -507,7 +515,10 @@ def build(crm, tools=None):
     @mcp.tool(annotations=WRITE)
     async def create_task(
         title: Annotated[str, Field(description="What is to be done, as the task's name.")],
-        owner: Annotated[str, Field(description="Who is to do it: a person; Me for the owner.")],
+        owner: Annotated[
+            str,
+            Field(description="Who is to do it: a person, or an organization (a refund, a fix); Me for the owner."),
+        ],
         origin: Annotated[str, Field(description="The interaction it comes from: id or name.")],
         status: Annotated[
             Literal["open", "waiting", "done", "cancelled"],
@@ -559,7 +570,7 @@ def build(crm, tools=None):
             str,
             Field(
                 description="One question: for an open one, what only the owner can tell, which they answer in a "
-                "sentence; else one they answer with yes or no, or same or different."
+                'sentence; else one they answer with yes or no, e.g. "Is Hans the same person as Hans Müller?".'
             ),
         ],
         candidates: Annotated[list[str], Field(description="The notes it is about; two for a duplicate.")],
@@ -568,13 +579,16 @@ def build(crm, tools=None):
         source: Source,
         address: Annotated[str | None, Field(description="For an address review: the address.")] = None,
     ) -> dict:
-        """Ask the owner: a review note with one question, which they answer in Obsidian by setting its `decision`.
-        For a duplicate, "same" merges them, as merge_entities does, and "different" records the two as different on
-        both notes. For an address, yes adds it to the person's emails; for a job change of a person and an
-        organization, yes makes it theirs. An open question the owner answers in its `answer` field, in words; orbit
-        then sets its decision to `answered` (list_entities type review, decision answered, shows the answer), and
-        whoever acts on it records that with settle_review. Asking again while it is pending returns
-        the existing review; what the owner answered shows in get_entity_context's answered_reviews."""
+        """Ask the owner: a review note with one question, which they answer in Obsidian by ticking Yes or No, which
+        sets its `decision`. For a duplicate, yes merges them, as merge_entities does, even where they were recorded
+        as different, and no records the two as different on both notes. For an address, yes adds it to the person's
+        emails; for a job change of a person and an organization, yes makes it theirs. An open question the owner
+        answers in its `answer` field, in words; orbit then sets its decision to `answered` (list_entities type
+        review, decision answered, shows the answer), and whoever acts on it records that with settle_review. Asking
+        what a review asks already (a duplicate, address or job change of the same notes; another question in the
+        same words) returns that review, pending or answered, with the owner's `decision` and `answer`: their answer
+        stands, so act on it rather than ask again. What the owner answered shows in get_entity_context's
+        answered_reviews too."""
         return _run(reviews.propose, crm, kind, question, candidates, evidence_for, evidence_against, source, address)
 
     @mcp.tool(annotations=WRITE)
@@ -599,8 +613,8 @@ def build(crm, tools=None):
         Where the two hold different values, `keep`'s stay, and a review asks the owner whether they are right
         (`conflicts`, `review`). Every link to `drop` is rewritten to `keep`, except in notes that can't be read
         (`links_left`), and `drop` goes to the vault's .trash, from where it can be restored. Refused for notes
-        recorded as different (`distinct_from`). Resolve and compare with get_entity_context first; when unsure,
-        propose_review instead."""
+        recorded as different (`distinct_from`): only the owner's answer to a duplicate review merges those. Resolve
+        and compare with get_entity_context first; when unsure, propose_review instead."""
         return _run(upkeep.merge, crm, keep, drop, source)
 
     @mcp.tool(annotations=WRITE)
@@ -613,6 +627,17 @@ def build(crm, tools=None):
         (`links_left`, with the reason). A person's, organization's or topic's `name` changes with it, with a history
         line, and the old name joins `aliases`. Refused if another note has the name."""
         return _run(upkeep.rename, crm, id_or_name, new_name, source)
+
+    @mcp.tool(annotations=WRITE)
+    async def link_by_domain(
+        dry_run: Annotated[bool, Field(description="Only say who would be linked.")] = False,
+    ) -> dict:
+        """Link every person without an organization, but the owner, to the organization their address is at: the
+        one whose domains hold its domain, or the nearest domain it is under (students.school.example,
+        school.example); never by a free-mail domain, nor where several organizations claim it. Each link gets a
+        history line that names the address. Returns who was linked (`linked`), and the notes that couldn't be read
+        (`unreadable`)."""
+        return _run(upkeep.link_by_domain, crm, dry_run)
 
     @mcp.tool(annotations=WRITE)
     async def create_missing_references(
@@ -667,16 +692,23 @@ def http_app(crm, host, tools=None):
 
 def serve(root, host=None, port=None, stdio=False, tools=None):
     """Open the vault, bring its index up to date, and serve it until stopped: the tools that `tools` names (group
-    and tool names), or else orbit.toml's [server] tools, or else all."""
-    with Crm(root) as crm:
-        config = crm.vault.config
-        if tools is not None:
-            allowed = tool_names(tools, "--tools")
-        else:
-            allowed = tool_names(config.tools, f"{crm.vault.path(CONFIG)}: server.tools")
-        report = crm.refresh()
-        console.say(f"orbit: {crm.vault.root}, index up to date ({report})")
-        anyio.run(_serve, crm, host or config.host, port or config.port, stdio, allowed)
+    and tool names), or else orbit.toml's [server] tools, or else all. The run's log goes to a file of its own."""
+    path = logs.start("serve", datetime.datetime.now())
+    try:
+        with Crm(root) as crm:
+            config = crm.vault.config
+            if tools is not None:
+                allowed = tool_names(tools, "--tools")
+            else:
+                allowed = tool_names(config.tools, f"{crm.vault.path(CONFIG)}: server.tools")
+            report = crm.refresh()
+            console.say(f"orbit {__version__}: {crm.vault.root}, index up to date ({report}); this run's log: {path}")
+            anyio.run(_serve, crm, host or config.host, port or config.port, stdio, allowed)
+    except (OrbitError, OSError) as e:
+        log.error("%s", e)  # for the log; the command says it
+        raise
+    finally:
+        logs.stop()
 
 
 async def _serve(crm, host, port, stdio, tools):
@@ -704,4 +736,5 @@ async def _serve_http(app, host, port):
     import uvicorn
 
     config = uvicorn.Config(app, host=host, port=port, log_level="info", timeout_graceful_shutdown=SHUTDOWN_SECONDS)
+    logs.attach("uvicorn", "uvicorn.access")  # configured just now, to pass nothing on
     await uvicorn.Server(config).serve()

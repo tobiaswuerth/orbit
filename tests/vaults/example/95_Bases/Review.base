@@ -1,21 +1,31 @@
-# Questions orbit has for you. Answer one by setting its decision, or an open question by writing its answer.
+# Questions orbit has for you. Tick Yes or No, or write your answer to an open question in its answer column.
 # Written by orbit init; change it as you like.
 filters:
   and:
     - file.inFolder("90_Review")
     - 'type == "review"'
+formulas:
+  how: 'if(kind == "question", "Write your answer", "Tick Yes or No")'
 properties:
   file.name:
     displayName: Review
+  formula.how:
+    displayName: How to answer
+  answer_yes:
+    displayName: "Yes"
+  answer_no:
+    displayName: "No"
 views:
   - type: table
     name: Pending reviews
     filters: 'decision == "pending"'
     order:
       - file.name
+      - formula.how
       - question
       - candidates
-      - decision
+      - answer_yes
+      - answer_no
       - answer
     sort:
       - property: created

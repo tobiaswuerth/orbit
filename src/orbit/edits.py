@@ -37,6 +37,22 @@ def add_items(note, field, items):
     return added
 
 
+def remove_items(note, field, items, source, date):
+    """Take items out of a list field, each with a line in the history. The items taken out, as they were."""
+    current = listed(note.fields.get(field))
+    gone = [c for c in current if any(same(c, i) for i in items)]
+    if not gone:
+        return []
+    kept = [c for c in current if c not in gone]
+    if kept:
+        note.fields[field] = kept
+    else:
+        note.fields.pop(field, None)
+    lines = [Change(date, field, str(item), None, source).line() for item in gone]
+    note.body.append("History", lines, schema.TYPES[note.type].sections)
+    return gone
+
+
 def set_value(note, field, value, source, date, history=True):
     """Set a single-value field (None clears it), and, on people, organizations and topics, write a history line
     dated `date`, the day the source says it. The Change, or None if the field held the value already."""

@@ -57,6 +57,10 @@ def resolve(
 def _candidates(crm, type, query):
     """The paths worth scoring: those sharing an identifier with the query."""
     pairs = [("email", e) for e in query["emails"]] + [("domain", d) for d in query["domains"]]
+    if (
+        type == schema.ORGANIZATION
+    ):  # an address at a subdomain is the organization's too: students.school.example, school.example
+        pairs += [("domain", p) for d in query["domains"] for p in names.parent_domains(d)]
     pairs += [("phone", query["phone"])] if query["phone"] else []
     pairs += [("uid", query["uid"])] if query["uid"] else []
     nicknames = crm.vault.nicknames
@@ -173,6 +177,19 @@ def _address_name(address):
     return names.Name(full, tuple(w for w in words if len(w) == 1), full[-1] if full else None)
 
 
+def organization_of(crm, address):
+    """The organization an address is at: the one whose domains hold its domain, or else the nearest domain it is
+    under. None for a free-mail domain, and where no organization or several claim it."""
+    domain = names.domain(names.email(address))
+    if domain in crm.vault.config.free_mail_domains:
+        return None
+    for claimed in [domain, *names.parent_domains(domain)]:
+        found = [e for e in map(crm.entity, crm.index.lookup([("domain", claimed)])) if e.type == schema.ORGANIZATION]
+        if found:
+            return found[0] if len(found) == 1 else None
+    return None
+
+
 def _org_domains(crm, org):
     target = schema.link_target(org) if isinstance(org, str) else None
     if not target:
@@ -191,6 +208,9 @@ def _organization(crm, entity, query):
     if shared := sorted(domains & query["domains"]):
         best = max(best, 0.95)
         reasons.append(f"same domain {', '.join(shared)}")
+    elif under := sorted(domains & {p for d in query["domains"] for p in names.parent_domains(d)}):
+        best = max(best, 0.9)
+        reasons.append(f"a subdomain of {', '.join(under)}")
     for written in query["names"]:
         for kind, v in _variants(entity):
             ours, theirs = names.org_key(written).split(), names.org_key(v).split()

@@ -116,6 +116,12 @@ def test_role_addresses():
     assert not names.is_role_address("hans@acme.example", roles)
 
 
+def test_the_domains_a_domain_is_under():
+    assert names.parent_domains("students.school.example") == ["school.example"]
+    assert names.parent_domains("a.b.acme.example") == ["b.acme.example", "acme.example"]
+    assert names.parent_domains("school.example") == names.parent_domains("localhost") == []
+
+
 def test_domains():
     assert names.normalize_domain(" Acme-AG.example. ") == "acme-ag.example"
     assert names.normalize_domain("https://www.acme.example/about") == "acme.example"
