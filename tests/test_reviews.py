@@ -123,6 +123,21 @@ def test_the_owner_s_same_overrides_an_agent_s_different(crm):
     assert '- 2026-10-22 · distinct_from: Hans → "" · [[2026-10-18 Duplicate – Hans and Hans Müller]]' in history
 
 
+def test_two_reviews_of_one_pair_merge_it_once_and_quietly(crm):
+    # The owner said yes to two reviews of the same twins: the first merged them, and the second then reported that it
+    # couldn't merge one note with itself.
+    note = crm.vault.path(REVIEW)
+    note.write_text(note.read_text(encoding="utf-8").replace("decision: pending", "decision: yes"), "utf-8")
+    crm.vault.write(
+        "90_Review/Again.md",
+        "---\ntype: review\nid: rev_01M57ZJMHGT7KNNJKNG5AEW8B2\nkind: duplicate\nquestion: x\ncandidates:\n"
+        '  - "[[Hans]]"\n  - "[[Hans Müller]]"\ndecision: yes\n---\n',
+    )
+    crm.refresh()
+    assert fields(crm, "Hans Müller")["merged_from"] == ["per_01M57ZJKJ8HWCPYDPQSTB9FCH9"]
+    assert crm.review_problems == {}
+
+
 def test_an_owner_who_answered_both_same_and_different_is_told(crm):
     decide(crm, "different")
     crm.vault.write(

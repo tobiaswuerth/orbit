@@ -348,6 +348,8 @@ def _decide_duplicate(crm, review, decision, changes):
         pair = [crm.find(c) for c in edits.listed(review.fields.get("candidates"))]
         if len(pair) != 2 or pair[0].type != pair[1].type or pair[0].type not in PLURALS:
             return
+        if pair[0].path == pair[1].path:  # merged already, as another review of the two asked
+            return
         if decision == "different":
             changes.extend(_different(crm, review, pair))
         else:

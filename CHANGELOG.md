@@ -40,6 +40,8 @@ The owner's answers win, and take a click; people at their organization; organiz
 
 - `upsert_person` refuses `provisional` together with `distinct_from`, which said at once that a person may be
   someone and isn't, so that the owner's answer couldn't merge them.
+- Two duplicate reviews of one pair, both answered yes, merge it once; the second no longer reports that it couldn't
+  merge the note with itself.
 
 ## [0.7.1] - 2026-10-23
 
