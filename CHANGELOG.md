@@ -21,8 +21,9 @@ The owner's answers win, and take a click; people at their organization; organiz
 - `link_by_domain` (upkeep) links the people already in the vault so, each with a history line naming the address.
 - `resolve_entity` finds an organization by a subdomain of its domain.
 - `log_interaction` answers with `open_tasks`: the open tasks of the people and organizations the interaction is with,
-  which it may settle.
-- `orbit serve` writes each run's log, every line with its time, to `ORBIT_HOME/logs/serve-<time>.log`; every log is kept.
+  which it may settle; up to 50, and `open_tasks_more` counts the rest.
+- `orbit serve` writes each run's log, every line with its time, to `ORBIT_HOME/logs/serve-<time>.log`, down to how
+  it ended (an error, or stopped by hand); every log is kept.
 
 ### Changed
 
