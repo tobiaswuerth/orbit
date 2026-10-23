@@ -342,6 +342,18 @@ def test_serve_over_stdio(example, home, monkeypatch, capsys):
     assert "MCP server on" not in capsys.readouterr().err
 
 
+def test_a_server_stopped_by_hand_says_so_in_its_log(example, home, monkeypatch):
+    # A log that just ends can't tell a stop from a crash.
+    def stopped(*args, **kwargs):  # Ctrl+C, which the event loop raises when it stops
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(server.anyio, "run", stopped)
+    with pytest.raises(KeyboardInterrupt):
+        server.serve(example, stdio=True)
+    (log,) = (home / "logs").glob("serve-*.log")
+    assert log.read_text(encoding="utf-8").rstrip().endswith("INFO orbit.server: stopped")
+
+
 def test_the_http_app_answers_mcp(crm):
     app = server.build(crm).streamable_http_app(host="127.0.0.1")
     with TestClient(app, base_url="http://127.0.0.1:8775") as client:

@@ -707,6 +707,9 @@ def serve(root, host=None, port=None, stdio=False, tools=None):
     except (OrbitError, OSError) as e:
         log.error("%s", e)  # for the log; the command says it
         raise
+    except KeyboardInterrupt:
+        log.info("stopped")
+        raise
     finally:
         logs.stop()
 
