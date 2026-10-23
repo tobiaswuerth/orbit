@@ -22,8 +22,7 @@ The owner's answers win, and take a click; people at their organization; organiz
 - `resolve_entity` finds an organization by a subdomain of its domain.
 - `log_interaction` answers with `open_tasks`: the open tasks of the people and organizations the interaction is with,
   which it may settle.
-- `orbit serve` writes each run's log, every line with its time, to `ORBIT_HOME/logs/serve-<time>.log`; the newest
-  100 are kept.
+- `orbit serve` writes each run's log, every line with its time, to `ORBIT_HOME/logs/serve-<time>.log`; every log is kept.
 
 ### Changed
 

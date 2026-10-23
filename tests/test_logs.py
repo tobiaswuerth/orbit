@@ -41,18 +41,12 @@ def test_two_runs_in_one_second_get_two_files(home):
     assert (first.name, second.name) == ("serve-2026-10-23_210509.log", "serve-2026-10-23_210509-2.log")
 
 
-def test_only_the_newest_logs_are_kept(home, monkeypatch):
-    monkeypatch.setattr(logs, "KEEP", 3)
+def test_every_log_is_kept(home):
     folder = home / "logs"
     folder.mkdir(parents=True)
-    for day in range(1, 6):
-        (folder / f"serve-2026-10-0{day}_120000.log").write_text("x", encoding="utf-8")
-    (folder / "notes.txt").write_text("the owner's", encoding="utf-8")
+    older = [f"serve-2026-10-0{day}_120000.log" for day in range(1, 10)]
+    for name in older:
+        (folder / name).write_text("x", encoding="utf-8")
     logs.start("serve", NOW)
     logs.stop()
-    assert sorted(p.name for p in folder.iterdir()) == [
-        "notes.txt",
-        "serve-2026-10-04_120000.log",
-        "serve-2026-10-05_120000.log",
-        "serve-2026-10-23_210509.log",
-    ]
+    assert sorted(p.name for p in folder.iterdir()) == [*older, "serve-2026-10-23_210509.log"]

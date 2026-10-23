@@ -219,8 +219,7 @@ tools' schemas, for the agents that read them.
 `99_System/nicknames.txt` lists first names that stand for one another, one group per line: `Hans = Hansi =
 Hansruedi`. The one environment variable, `ORBIT_HOME` (default `~/.orbit/`), says where the indexes live: outside
 the vault, one database per vault, so sync tools never see a live database. Each run of `orbit serve` writes what it
-says, with the time of each line, to a log of its own there, `logs/serve-2026-10-23_210509.log`; the newest 100 are
-kept.
+says, with the time of each line, to a log of its own there, `logs/serve-2026-10-23_210509.log`; every log is kept.
 
 ## How it works
 
