@@ -44,17 +44,30 @@ def test_views_use_the_documented_keys_and_existing_fields(name):
         folders = re.findall(r'file\.inFolder\("([^"]+)"\)', " ".join(everything))
         (folder,) = set(folders)
         (kind,) = [t for t in schema.TYPES.values() if t.folder == folder]
-        statements = everything
+        statements = [*everything, *base.get("formulas", {}).values()]
         used = [*view.get("order", []), *(s["property"] for s in view.get("sort", []))]
         used += [view["groupBy"]["property"]] if "groupBy" in view else []
         used += [m for s in statements for m in FIELD.findall(re.sub(r'"[^"]*"', '""', s))]
         for field in used:
             name_ = field.removeprefix("note.")
+            if name_.startswith("formula."):
+                assert name_.removeprefix("formula.") in base["formulas"], f"{name}: no formula {name_}"
+                continue
             if name_.startswith("file.") or name_ in FUNCTIONS:
                 continue
             assert kind.field(name_), f"{name}: {view['name']} uses {field}, which a {kind.name} doesn't have"
         for sort in view.get("sort", []):
             assert sort["direction"] in ("ASC", "DESC")
+
+
+def test_the_review_base_says_how_to_answer_and_answers_in_a_click():
+    base = yaml.safe_load(bases.templates()["Review.base"])
+    pending = base["views"][0]["order"]
+    assert pending[:2] == ["file.name", "formula.how"]
+    assert {"answer_yes", "answer_no", "answer"} <= set(pending)
+    assert base["formulas"]["how"] == 'if(kind == "question", "Write your answer", "Tick Yes or No")'
+    shown = base["properties"]
+    assert (shown["answer_yes"]["displayName"], shown["answer_no"]["displayName"]) == ("Yes", "No")
 
 
 def test_init_writes_the_bases(tmp_path):

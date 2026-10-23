@@ -79,7 +79,7 @@ def test_reviews_of_other_kinds_are_answers_only(crm, example):
         .read_text(encoding="utf-8")
         .endswith(
             "## Evidence for\n- Her mail bounced\n\n## Evidence against\n\n"
-            "## How to answer\nSet `decision` to `yes` or `no`.\n"
+            "## How to answer\nTick Yes or No in the Review base (`answer_yes` or `answer_no`).\n"
         )
     )
     decide(crm, "yes", path)
@@ -89,9 +89,109 @@ def test_reviews_of_other_kinds_are_answers_only(crm, example):
 def test_proposing_again_returns_the_pending_review(crm):
     result = reviews.propose(crm, "duplicate", "Same?", ["Hans Müller", "Hans"], [], [], SAILING)
     assert (result["name"], result["existing"]) == ("2026-10-18 Duplicate – Hans and Hans Müller", True)
+
+
+def test_what_the_owner_answered_is_not_asked_again(crm):
+    # The owner answered, and a later agent asked them the same again: they changed the decision themselves if they
+    # wanted it changed, so the answer stands, and the agent learns it.
     decide(crm, "different")
-    fresh = reviews.propose(crm, "duplicate", "Same after all?", ["Hans Müller", "Hans"], [], [], "Tobias in chat")
-    assert (fresh["name"], fresh["existing"]) == ("2026-10-22 Duplicate – Hans Müller and Hans", False)
+    again = reviews.propose(crm, "duplicate", "Same after all?", ["Hans Müller", "Hans"], [], [], "Tobias in chat")
+    assert (again["name"], again["existing"], again["decision"]) == (
+        "2026-10-18 Duplicate – Hans and Hans Müller", True, "different")  # fmt: skip
+    path = ask_open(crm)
+    answer(crm, path, "Yes, since 2014.")
+    asked = reviews.propose(crm, "question", " is Example Bank  your bank? ", ["Me"], [], [], SAILING)
+    assert (asked["existing"], asked["answer"]) == (True, "Yes, since 2014.")
+    other = reviews.propose(crm, "question", "Is Example Bank your employer?", ["Me"], [], [], SAILING)
+    assert other["existing"] is False  # another question about the same note
+
+
+def test_the_owner_s_same_overrides_an_agent_s_different(crm):
+    # An import created a second note for one person, and in the same breath recorded the two as different; the
+    # owner's yes then did nothing, and reviews tried the merge again and again. The owner's answer wins.
+    for name, other in (("Hans", "Hans Müller"), ("Hans Müller", "Hans")):
+        note = crm.vault.path(f"01_People/{name}.md")
+        text = note.read_text(encoding="utf-8")
+        note.write_text(text.replace("\ncreated:", f'\ndistinct_from:\n  - "[[{other}]]"\ncreated:', 1), "utf-8")
+    crm.refresh()
+    decide(crm, "yes")
+    merged = fields(crm, "Hans Müller")
+    assert merged["merged_from"] == ["per_01M57ZJKJ8HWCPYDPQSTB9FCH9"]
+    assert "distinct_from" not in merged
+    assert REVIEW not in crm.review_problems
+    history = crm.vault.path("01_People/Hans Müller.md").read_text(encoding="utf-8")
+    assert '- 2026-10-22 · distinct_from: Hans → "" · [[2026-10-18 Duplicate – Hans and Hans Müller]]' in history
+
+
+def test_two_reviews_of_one_pair_merge_it_once_and_quietly(crm):
+    # The owner said yes to two reviews of the same twins: the first merged them, and the second then reported that it
+    # couldn't merge one note with itself.
+    note = crm.vault.path(REVIEW)
+    note.write_text(note.read_text(encoding="utf-8").replace("decision: pending", "decision: yes"), "utf-8")
+    crm.vault.write(
+        "90_Review/Again.md",
+        "---\ntype: review\nid: rev_01M57ZJMHGT7KNNJKNG5AEW8B2\nkind: duplicate\nquestion: x\ncandidates:\n"
+        '  - "[[Hans]]"\n  - "[[Hans Müller]]"\ndecision: yes\n---\n',
+    )
+    crm.refresh()
+    assert fields(crm, "Hans Müller")["merged_from"] == ["per_01M57ZJKJ8HWCPYDPQSTB9FCH9"]
+    assert crm.review_problems == {}
+
+
+def test_an_owner_who_answered_both_same_and_different_is_told(crm):
+    decide(crm, "different")
+    crm.vault.write(
+        "90_Review/Again.md",
+        "---\ntype: review\nid: rev_01M57ZJMHGT7KNNJKNG5AEW8B1\nkind: duplicate\nquestion: x\ncandidates:\n"
+        '  - "[[Hans]]"\n  - "[[Hans Müller]]"\ndecision: same\n---\n',
+    )
+    crm.refresh({"90_Review/Again.md"})
+    assert "you answered different in [[2026-10-18 Duplicate – Hans and Hans Müller]]" in crm.review_problems[
+        "90_Review/Again.md"]  # fmt: skip
+    assert fields(crm, "Hans")["distinct_from"] == ["[[Hans Müller]]"]
+
+
+def tick(crm, path, box):
+    """Tick a yes or no box, as the Review base's table does with one click."""
+    note = crm.vault.path(path)
+    note.write_text(note.read_text(encoding="utf-8").replace(f"{box}: false", f"{box}: true"), "utf-8")
+    return crm.refresh({path})
+
+
+def test_a_yes_or_no_question_has_boxes_to_tick(crm):
+    path = ask_address(crm)
+    text = crm.vault.path(path).read_text(encoding="utf-8")
+    assert "answer_yes: false\nanswer_no: false\n" in text
+    assert "answer:" not in text.replace("answer_yes", "").replace("answer_no", "")
+    assert "Tick Yes or No in the Review base" in text
+    tick(crm, path, "answer_yes")
+    assert "tobias@alt.example" in fields(crm, "Me")["emails"]
+    assert fields(crm, path.removeprefix("90_Review/").removesuffix(".md"))["decision"] == "yes"
+
+
+def test_ticking_no_on_a_duplicate_records_them_as_different(crm):
+    note = crm.vault.path(REVIEW)
+    note.write_text(note.read_text(encoding="utf-8").replace("answer_yes: false\nanswer_no: false\n", ""), "utf-8")
+    crm.refresh({REVIEW})  # a review from before the boxes gets them
+    assert "decision: pending\nanswer_yes: false\nanswer_no: false\n" in note.read_text(encoding="utf-8")
+    tick(crm, REVIEW, "answer_no")
+    assert (fields(crm, "Hans")["distinct_from"], fields(crm, REVIEW[10:-3])["decision"]) == (
+        ["[[Hans Müller]]"], "different")  # fmt: skip
+
+
+def test_both_boxes_ticked_is_no_answer(crm):
+    upkeep.apply_reviews(crm)
+    note = crm.vault.path(REVIEW)
+    note.write_text(note.read_text(encoding="utf-8").replace(": false", ": true"), "utf-8")
+    crm.refresh({REVIEW})
+    assert fields(crm, REVIEW[10:-3])["decision"] == "pending"
+    assert "both Yes and No are ticked" in crm.review_problems[REVIEW]
+
+
+def test_an_open_question_has_no_boxes(crm):
+    text = crm.vault.path(ask_open(crm)).read_text(encoding="utf-8")
+    assert 'answer: ""' in text
+    assert "answer_yes" not in text
 
 
 def test_a_pending_review_is_found_however_its_candidates_are_written(crm):

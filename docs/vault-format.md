@@ -53,8 +53,8 @@ too, so that links to them resolve, but only notes with a `type` are entities.
 | organization | `type`, `id`, `name`, `aliases`, `domains`, `uid_che`, `industry`, `location`, `address`, `website`, `parent`, `relationship` (client, prospect, partner, vendor, employer, personal), `merged_from`, `distinct_from`, `documents`, `created`, `updated` |
 | interaction | `type`, `id`, `kind` (email, meeting, call, message, note, automated), `date`, `direction` (inbound, outbound), `subject`, `from`, `to`, `cc`, `participants`, `mentioned`, `orgs`, `topics`, `language`, `message_id`, `in_reply_to`, `replies_to`, `thread`, `source_file`, `sha256`, `documents`, `created` |
 | task | `type`, `id`, `status` (open, waiting, done, cancelled), `due`, `due_note`, `owner`, `related`, `origin`, `created`, `updated` |
-| topic | `type`, `id`, `name`, `aliases`, `status` (active, paused, closed), `orgs`, `people`, `documents`, `distinct_from`, `created`, `updated` |
-| review | `type`, `id`, `kind` (duplicate, job_change, address, other, question), `question`, `candidates`, `address`, `decision` (pending, same, different, yes, no, answered), `answer`, `applied`, `source`, `created` |
+| topic | `type`, `id`, `name`, `aliases`, `status` (active, paused, closed), `orgs`, `people`, `documents`, `merged_from`, `distinct_from`, `created`, `updated` |
+| review | `type`, `id`, `kind` (duplicate, job_change, address, other, question), `question`, `candidates`, `address`, `decision` (pending, same, different, yes, no, answered), `answer_yes`, `answer_no`, `answer`, `applied`, `source`, `created` |
 
 Relations are fields holding wikilinks, never nested mappings. `documents` refers to documents outside the vault, each
 as a Markdown link with its title: `"[Offer v2](https://…)"`, or `"[Offer](<C:\Offers\Offer v2.pdf>)"` for a
@@ -104,16 +104,23 @@ set it moves the old one to `former_orgs`; changed by the same source, it is a c
 
 ## Reviews
 
-A review asks the owner one question. They answer it in Obsidian by setting `decision`; orbit applies the answer the
-next time it reads the note. For a duplicate, `different` (or `no`) adds each note to the other's `distinct_from`, and
-confirms a provisional person (`review_status: needs_review`); `same` (or `yes`) merges the newer note into the older
-one. A decision that can't be applied, such as `same` for two notes recorded as different, is listed by `lint_vault`.
+A review asks the owner one question. A yes-or-no question they answer in Obsidian with one click, ticking Yes or No
+in the Review base (its `answer_yes` and `answer_no` boxes), or by setting `decision`; orbit sets the decision the box
+says and applies it the next time it reads the note. Both boxes ticked is no answer, which `lint_vault` lists. For a
+duplicate, No (`different`) adds each note to the other's `distinct_from`, and confirms a provisional person
+(`review_status: needs_review`); Yes (`same`) merges the newer note into the older one, also where an agent recorded
+the two as different: the owner's answer wins over an agent's, and each note's history says so (`distinct_from: Hans
+→ ""`). Only an owner who answered the same pair different in another review is asked to settle which holds. A
+decision that can't be applied is listed by `lint_vault`. Reviews written before the boxes get them when orbit next
+reads the vault.
 
 An open question (`kind: question`) asks what only the owner can tell, such as whether an organization is their bank
 or who a person was to them. The owner answers in their own words in its `answer` property, which the Review base's
-table shows as a column to type into; orbit then sets `decision` to `answered`. An agent that acts on the answer (recording a fact with the owner as its source, correcting a note)
-records what it did with `settle_review`: a line under `## Applied`, and the `applied` date, so that no one acts on
-it twice. Any answered review can be settled so.
+table shows as a column to type into; orbit then sets `decision` to `answered`. An agent that acts on the answer
+(recording a fact with the owner as its source, correcting a note) records what it did with `settle_review`: a line
+under `## Applied`, and the `applied` date, so that no one acts on it twice. Any answered review can be settled so.
+
+What a review asks is asked once: proposing it again returns it, pending or answered, with the owner's answer.
 
 ## Merging and renaming
 

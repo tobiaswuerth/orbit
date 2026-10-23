@@ -36,6 +36,7 @@ TOOLS = [
     "settle_review",
     "merge_entities",
     "rename_entity",
+    "link_by_domain",
     "create_missing_references",
     "lint_vault",
 ]
@@ -109,12 +110,13 @@ def test_read_tools_are_marked_read_only(mcp):
 
 def test_propose_review_says_what_each_answer_to_a_duplicate_does(mcp):
     description = tools(mcp)["propose_review"].description
-    assert '"same" merges them' in description
-    assert '"different" records the two as different' in description
+    assert "yes merges them" in " ".join(description.split())
+    assert "even where they were recorded as different" in " ".join(description.split())
+    assert "no records the two as different" in " ".join(description.split())
 
 
 READS = TOOLS[:4]
-UPKEEP = ["merge_entities", "rename_entity", "create_missing_references", "lint_vault"]
+UPKEEP = ["merge_entities", "rename_entity", "link_by_domain", "create_missing_references", "lint_vault"]
 
 
 def test_tools_come_in_groups_by_what_they_may_change():
@@ -134,7 +136,7 @@ def test_a_server_with_some_tools_says_which_it_leaves_out(crm):
     assert list(tools(mcp)) == [t for t in TOOLS if t not in UPKEEP]
     assert (
         "This connection offers only some of orbit's tools; the vault's owner left out merge_entities, rename_entity, "
-        "create_missing_references and lint_vault." in mcp.instructions
+        "link_by_domain, create_missing_references and lint_vault." in mcp.instructions
     )
     assert "left out" not in server.build(crm).instructions
 
@@ -236,6 +238,7 @@ def test_write_tools(mcp, crm):
     merged = data(call(mcp, "merge_entities", {"keep": "Hans Müller", "drop": "Hans B", "source": chat}))
     assert merged["id"] == "per_01M4WNN540CGMAHYXV1R90AA5V"
     assert data(call(mcp, "create_missing_references", {"dry_run": True}))["created"] == []
+    assert data(call(mcp, "link_by_domain", {"dry_run": True}))["linked"] == []
 
 
 def test_several_links_and_addresses_through_mcp(mcp):
@@ -337,6 +340,18 @@ def test_serve_over_stdio(example, home, monkeypatch, capsys):
     server.serve(example, stdio=True, tools=["read"])
     assert ran == [TOOLS, READS]
     assert "MCP server on" not in capsys.readouterr().err
+
+
+def test_a_server_stopped_by_hand_says_so_in_its_log(example, home, monkeypatch):
+    # A log that just ends can't tell a stop from a crash.
+    def stopped(*args, **kwargs):  # Ctrl+C, which the event loop raises when it stops
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(server.anyio, "run", stopped)
+    with pytest.raises(KeyboardInterrupt):
+        server.serve(example, stdio=True)
+    (log,) = (home / "logs").glob("serve-*.log")
+    assert log.read_text(encoding="utf-8").rstrip().endswith("INFO orbit.server: stopped")
 
 
 def test_the_http_app_answers_mcp(crm):

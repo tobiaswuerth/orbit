@@ -5,6 +5,45 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-23
+
+The owner's answers win, and take a click; people at their organization; organizations that owe tasks.
+
+### Added
+
+- Yes-or-no reviews have two boxes, `answer_yes` and `answer_no`, which the Review base shows as Yes and No to tick
+  with one click, and a "How to answer" column. orbit sets the decision the ticked box says. Pending reviews written
+  before get the boxes when orbit next reads the vault. In an existing vault, `orbit init` leaves your `Review.base`
+  as it is: delete it and run `orbit init` to get the new one.
+- A person given no organization, with none yet, gets the one their address is at: the organization whose domains
+  hold its domain, or the nearest domain it is under (`students.school.example` is `school.example`'s).
+  `upsert_person` says so in `org_from_domain`. Never by a free-mail domain, never for the owner.
+- `link_by_domain` (upkeep) links the people already in the vault so, each with a history line naming the address,
+  dated by their last contact, so that a later email still changes it.
+- `resolve_entity` finds an organization by a subdomain of its domain.
+- `log_interaction` answers with `open_tasks`: the open tasks of the people and organizations the interaction is with,
+  which it may settle; up to 50, and `open_tasks_more` counts the rest.
+- `orbit serve` writes each run's log, every line with its time, to `ORBIT_HOME/logs/serve-<time>.log`, down to how
+  it ended (an error, or stopped by hand); every log is kept.
+
+### Changed
+
+- The owner's yes to a duplicate review merges the two notes even where an agent recorded them as different
+  (`distinct_from`): the record comes off both, with a history line. Only where the owner answered the same pair
+  different in another review is the yes left, and `lint_vault` asks which holds. `merge_entities` still refuses such
+  notes, and says that only the owner's answer merges them.
+- `propose_review` returns the review that asks the same already, answered or not, with the owner's `decision` and
+  `answer`, rather than asking again. Open questions and other yes-or-no reviews ask the same when their words do.
+- A task's owner may be an organization: a shop's refund, a provider's fix.
+
+### Fixed
+
+- `upsert_person` refuses `provisional` together with `distinct_from`, which said at once that a person may be
+  someone and isn't, so that the owner's answer couldn't merge them.
+- Two duplicate reviews of one pair, both answered yes, merge it once; the second no longer reports that it couldn't
+  merge the note with itself.
+- A merged topic's `merged_from` is part of the topic schema: `lint_vault` no longer warns of it as unknown.
+
 ## [0.7.1] - 2026-10-23
 
 ### Changed

@@ -138,6 +138,8 @@ def test_limit(crm):
         ({"names_": ["acme ag"]}, "same name (name): acme ag", 0.9),
         ({"domain": "https://www.acme-ag.example/"}, "same domain acme-ag.example", 0.95),
         ({"emails": ["info@acme-ag.example"]}, "same domain acme-ag.example", 0.95),
+        ({"emails": ["max@students.acme-ag.example"]}, "a subdomain of acme-ag.example", 0.9),
+        ({"domain": "mail.zh.acme-ag.example"}, "a subdomain of acme-ag.example", 0.9),
     ],
 )
 def test_organizations(crm, query, reason, score):

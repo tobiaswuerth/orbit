@@ -198,6 +198,12 @@ def is_domain(text):
     return bool(DOMAIN.fullmatch(text))
 
 
+def parent_domains(domain):
+    """The domains a domain is under, nearest first, down to two labels: students.school.example → school.example."""
+    labels = domain.split(".")
+    return [".".join(labels[i:]) for i in range(1, len(labels) - 1)]
+
+
 def phone_key(number):
     """The last nine digits of a phone number, which match whichever way it was written (+41 52…, 052…, 0041 52…);
     None for a number too short to tell."""

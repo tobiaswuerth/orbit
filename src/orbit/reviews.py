@@ -1,8 +1,9 @@
 """Reviews: questions for the vault's owner, as notes in 90_Review, each with one question, the evidence for and
-against, and how to answer. The owner answers in Obsidian by setting `decision`, or, for an open question, in their own
-words in its `answer` property; `upkeep.apply_reviews` applies the answers that change notes: duplicates
-merged or recorded as different, an address added, a job change made, an open question marked answered. What an agent
-then does with an answer, it records with `settle`."""
+against, and how to answer. The owner answers a yes-or-no question by ticking Yes or No in the Review base (its
+`answer_yes` and `answer_no` boxes) or by setting `decision`, and an open question in their own words in its `answer`
+property; `upkeep.apply_reviews` applies the answers that change notes: duplicates merged or recorded as different, an
+address added, a job change made, an open question marked answered. What an agent then does with an answer, it
+records with `settle`."""
 
 from . import console, edits, names, schema
 from .entries import SEP
@@ -16,14 +17,16 @@ LABELS = {
     "question": "Open question",
 }
 PLURALS = {schema.PERSON: "people", schema.ORGANIZATION: "organizations", schema.TOPIC: "topics"}
+# The yes-or-no kinds, and the decision each box gives: (on No, on Yes)
+TICKED = dict.fromkeys(("job_change", "address", "other"), ("no", "yes")) | {"duplicate": ("different", "same")}
+TICK = "Tick Yes or No in the Review base (`answer_yes` or `answer_no`)."
 ANSWERS = {
-    "duplicate": "Set `decision` to `same` or `different`. orbit then merges the two notes, or records them as "
-    "different {plural}.",
-    "job_change": "Set `decision` to `yes` or `no`.",
-    "job_change_applied": "Set `decision` to `yes` or `no`. On yes, orbit makes {org} the organization of {person}, "
-    "and the one before a former one.",
-    "address": "Set `decision` to `yes` or `no`. On yes, orbit then adds {address} to the emails of {person}.",
-    "other": "Set `decision` to `yes` or `no`.",
+    "duplicate": f"{TICK} On Yes, orbit merges the two notes; on No, it records them as different {{plural}}.",
+    "job_change": TICK,
+    "job_change_applied": f"{TICK} On Yes, orbit makes {{org}} the organization of {{person}}, and the one before a "
+    "former one.",
+    "address": f"{TICK} On Yes, orbit then adds {{address}} to the emails of {{person}}.",
+    "other": TICK,
     "question": "Write your answer in its `answer` property, in your own words: in the Review base's table, or in the "
     "note's properties. Leave `decision` as it is: orbit marks the question answered, and the next agent that reads "
     "it records what follows and says so under ## Applied.",
@@ -32,7 +35,7 @@ ANSWERS = {
 
 def propose(crm, kind, question, candidates, evidence_for, evidence_against, source, address=None):
     """Write a review note with one question for the owner, answered yes or no, or for an open question in words; or
-    return the pending one that asks it already."""
+    return the review that asks it already: pending, or answered, with the owner's answer, which stands."""
     if kind not in LABELS:
         raise OrbitError(f"kind: one of {', '.join(LABELS)}")
     if not isinstance(question, str) or not question.strip():
@@ -45,24 +48,16 @@ def propose(crm, kind, question, candidates, evidence_for, evidence_against, sou
     address = _address(crm, found, address) if kind == "address" else None
     link, date = crm.source(source)
     links = [e.link for e in found]
-    asked = {names.file_key(e.name) for e in found}
-    for existing in crm.entities(schema.REVIEW):
-        candidates = {
-            names.file_key(schema.link_target(c) or "") for c in edits.listed(existing.fields.get("candidates"))
-        }
-        same = existing.fields.get("kind") == kind and candidates == asked and existing.fields.get("address") == address
-        if existing.fields.get("decision") == "pending" and same:
-            return {
-                "id": existing.id,
-                "path": str(crm.vault.path(existing.path)),
-                "name": existing.name,
-                "existing": True,
-            }
+    if asked := _asked(crm, kind, question, found, address):
+        answer_ = {"answer": answer(asked)} if answer(asked) else {}
+        return {"id": asked.id, "path": str(crm.vault.path(asked.path)), "name": asked.name, "existing": True,
+                "decision": asked.fields.get("decision")} | answer_  # fmt: skip
     who = [e.name for e in found]
     title = f"{date} {LABELS[kind]} – {' and '.join([', '.join(who[:-1]), who[-1]] if len(who) > 1 else who)}"
     fields = {"kind": kind, "question": question.strip(), "candidates": links, "decision": "pending", "source": link}
     fields |= {"address": address} if address else {}
-    fields |= {"answer": ""} if kind == "question" else {}  # a cell to type into, in the Review base's table
+    # what to click or type into, in the Review base's table
+    fields |= {"answer_yes": False, "answer_no": False} if kind in TICKED else {"answer": ""}
     sections = [
         ("Evidence for", _points(evidence_for)),
         ("Evidence against", _points(evidence_against)),
@@ -71,6 +66,27 @@ def propose(crm, kind, question, candidates, evidence_for, evidence_against, sou
     note = crm.new(schema.REVIEW, schema.TYPES[schema.REVIEW].folder, title, fields, sections)
     change = crm.save(note, created=True)
     return {"id": change["id"], "path": change["path"], "name": change["name"], "existing": False, "changed": [change]}
+
+
+def _asked(crm, kind, question, found, address):
+    """The review that asks this already: the pending one, or else the latest answered. Reviews of a duplicate, an
+    address or a job change ask the same of the same notes; others the same question, too."""
+    asked = {names.file_key(e.name) for e in found}
+    matches = []
+    for existing in crm.entities(schema.REVIEW):
+        fields = existing.fields
+        candidates = {names.file_key(schema.link_target(c) or "") for c in edits.listed(fields.get("candidates"))}
+        same = fields.get("kind") == kind and candidates == asked and fields.get("address") == address
+        if kind in ("question", "other"):
+            same &= _words(fields.get("question")) == _words(question)
+        if same and isinstance(fields.get("decision"), str):
+            matches.append(existing)
+    pending = [r for r in matches if r.fields["decision"] == "pending"]
+    return (pending or sorted(matches, key=lambda r: str(r.fields.get("created", ""))) or [None])[-1]
+
+
+def _words(question):
+    return " ".join(question.split()).casefold() if isinstance(question, str) else None
 
 
 def answer(note):

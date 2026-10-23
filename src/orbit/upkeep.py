@@ -5,7 +5,7 @@ when a note is renamed: in front matter and in every section of the body."""
 import re
 from pathlib import PurePosixPath
 
-from . import console, edits, names, reviews, schema, writes
+from . import console, edits, names, resolve, reviews, schema, writes
 from .edits import Changes
 from .entries import Change
 from .errors import OrbitError
@@ -107,8 +107,9 @@ def rename(crm, ref, new_name, source):
     return _result(crm, found, path, changes) | {"links_left": left}
 
 
-def merge(crm, keep, drop, source):
-    """Merge `drop` into `keep`; see the merge_entities tool."""
+def merge(crm, keep, drop, source, overrule=False):
+    """Merge `drop` into `keep`; see the merge_entities tool. `overrule`: the owner says the two are one, so what
+    recorded them as different comes off both, with a history line."""
     k = crm.find(keep, schema.ENTITY, role="keep")
     d = crm.find(drop, (k.type,), role="drop")
     if k.path == d.path:
@@ -120,12 +121,13 @@ def merge(crm, keep, drop, source):
             raise OrbitError(f"{role}: {entity.link} has no id yet; lint_vault with fix gives it one")
     link, date = crm.source(source)
     note, other = crm.load(k.path), crm.load(d.path)
-    if any(edits.same(x, d.link) for x in edits.listed(note.fields.get("distinct_from"))) or any(
-        edits.same(x, k.link) for x in edits.listed(other.fields.get("distinct_from"))
-    ):
+    if overrule:
+        _undistinct(note, d, link, date)
+        _undistinct(other, k, link, date)
+    elif _distinct(note, d) or _distinct(other, k):
         raise OrbitError(
-            f"{k.link} and {d.link} are recorded as different {KINDS[k.type]}; if that is wrong, take each off the "
-            "other's distinct_from first"
+            f"{k.link} and {d.link} are recorded as different {KINDS[k.type]}; only the owner can say otherwise: "
+            "propose_review a duplicate, which returns their answer if they gave one, and their yes merges the two"
         )
     conflicts = _merge_fields(note, other, k, d)
     taken = {c["field"] for c in conflicts}
@@ -162,6 +164,25 @@ def merge(crm, keep, drop, source):
         result["review"] = {key: review[key] for key in ("id", "name", "path")}
         changes.extend(review.get("changed", []))
     return result | {"changed": list(changes)}
+
+
+def _distinct(note, entity):
+    """Whether a note records another as different."""
+    return any(edits.same(x, entity.link) for x in edits.listed(note.fields.get("distinct_from")))
+
+
+def _undistinct(note, entity, source, date):
+    """Take another note off a note's distinct_from, with a history line that names it in text, which the links
+    rewritten by a merge leave as it is."""
+    if not _distinct(note, entity):
+        return
+    kept = [x for x in edits.listed(note.fields["distinct_from"]) if not edits.same(x, entity.link)]
+    if kept:
+        note.fields["distinct_from"] = kept
+    else:
+        del note.fields["distinct_from"]
+    line = Change(date, "distinct_from", entity.name, None, source).line()
+    note.body.append("History", [line], schema.TYPES[note.type].sections)
 
 
 def _merge_fields(note, other, k, d):
@@ -218,14 +239,15 @@ def _answer_reviews(crm, k, d, changes):
 
 
 def apply_reviews(crm):
-    """Apply the decisions set on reviews. A duplicate's `same` merges the newer note into the older one; `different`
-    adds each note to the other's `distinct_from`, and confirms a provisional one. An address's `yes` adds it to the
-    person's emails; a job change's `yes`, about a person and an organization, makes it their organization and the
-    one before a former one; these are applied once, and marked `applied`, so that an edit made later stays. Applying
-    a decision twice changes nothing. What couldn't be applied is kept for lint_vault, in `crm.review_problems`. The
-    notes changed."""
+    """Apply the decisions set on reviews, or ticked in their boxes. A duplicate's `same` merges the newer note into
+    the older one, even where an agent recorded them as different; `different` adds each note to the other's
+    `distinct_from`, and confirms a provisional one. An address's `yes` adds it to the person's emails; a job change's
+    `yes`, about a person and an organization, makes it their organization and the one before a former one; these are
+    applied once, and marked `applied`, so that an edit made later stays. Applying a decision twice changes nothing.
+    What couldn't be applied is kept for lint_vault, in `crm.review_problems`. The notes changed."""
     changes, crm.review_problems = Changes(), {}
     for review in crm.entities(REVIEW):
+        review = _ticked(crm, review, changes)
         decision = review.fields.get("decision") if isinstance(review.fields.get("decision"), str) else None
         kind = review.fields.get("kind")
         if isinstance(kind, str) and kind in ACTS and decision in ("yes", "same") and not review.fields.get("applied"):
@@ -235,6 +257,31 @@ def apply_reviews(crm):
         else:
             _decide_duplicate(crm, review, decision, changes)
     return changes
+
+
+def _ticked(crm, review, changes):
+    """A yes-or-no review the owner answered by ticking a box gets the decision it says; a pending one from before the
+    boxes gets them. The review as it is now."""
+    fields, kind = review.fields, review.fields.get("kind")
+    if fields.get("decision") != "pending" or kind not in reviews.TICKED:
+        return review
+    yes, no = fields.get("answer_yes") is True, fields.get("answer_no") is True
+    if yes and no:
+        crm.review_problems[review.path] = "both Yes and No are ticked: untick the one that doesn't hold"
+        return review
+    if not (yes or no) and "answer_yes" in fields and "answer_no" in fields:
+        return review
+    try:
+        note = crm.load(review.path)
+    except OrbitError as e:
+        crm.review_problems[review.path] = str(e)
+        return review
+    if yes or no:
+        note.fields["decision"] = reviews.TICKED[kind][yes]
+    else:
+        note.fields |= {box: note.fields.get(box, False) for box in ("answer_yes", "answer_no")}
+    changes.add(crm.save(note))
+    return crm.entity(review.path)
 
 
 def _answered(crm, review, changes):
@@ -301,14 +348,30 @@ def _decide_duplicate(crm, review, decision, changes):
         pair = [crm.find(c) for c in edits.listed(review.fields.get("candidates"))]
         if len(pair) != 2 or pair[0].type != pair[1].type or pair[0].type not in PLURALS:
             return
+        if pair[0].path == pair[1].path:  # merged already, as another review of the two asked
+            return
         if decision == "different":
             changes.extend(_different(crm, review, pair))
         else:
+            if said := _said_different(crm, review, pair):
+                raise OrbitError(f"you answered different in {said.link}: set the one that doesn't hold to what does")
             keep, drop = sorted(pair, key=lambda e: (e.fields.get("me") is not True, (e.id or "").partition("_")[2]))
-            changes.extend(merge(crm, keep.link, drop.link, review.link)["changed"])
+            changes.extend(merge(crm, keep.link, drop.link, review.link, overrule=True)["changed"])
     except OrbitError as e:
         done = "merge them" if decision == "same" else "record it"
         crm.review_problems[review.path] = f"decided {decision}, but orbit couldn't {done}: {e}"
+
+
+def _said_different(crm, review, pair):
+    """Another duplicate review of the two that the owner answered different, if any."""
+    asked = {names.file_key(e.name) for e in pair}
+    for other in crm.entities(REVIEW):
+        candidates = {names.file_key(schema.link_target(c) or "") for c in edits.listed(other.fields.get("candidates"))}
+        decision = other.fields.get("decision")
+        answered = isinstance(decision, str) and DUPLICATE_ANSWERS.get(decision) == "different"
+        if answered and other.path != review.path and other.fields.get("kind") == "duplicate" and candidates == asked:
+            return other
+    return None
 
 
 def _different(crm, review, pair):
@@ -318,6 +381,34 @@ def _different(crm, review, pair):
         if note.fields.get("review_status") == "needs_review":
             edits.set_value(note, "review_status", "confirmed", review.link, crm.today())
     return [c for c in map(crm.save, notes) if c]
+
+
+def link_by_domain(crm, dry_run=False):
+    """Link every person without an organization, but the owner, to the one their address is at (see
+    resolve.organization_of), with a history line that names the address, dated when the address was last in use
+    (their last contact, else today): so that an email from after that still changes the organization. What was
+    linked, or would be."""
+    found, changes, unreadable = [], Changes(), []
+    for person in crm.entities(schema.PERSON):
+        if person.fields.get("me") or person.fields.get("org") not in (None, ""):
+            continue
+        emails = [e for e in edits.listed(person.fields.get("emails")) if isinstance(e, str)]
+        at = next(((e, org) for e in emails if (org := resolve.organization_of(crm, e))), None)
+        if at is None:
+            continue
+        if not dry_run:
+            try:
+                note = crm.load(person.path)
+            except OrbitError as e:
+                unreadable.append(_left(crm, person.path, e))
+                continue
+            last = str(note.fields.get("last_contact") or "")
+            edits.set_value(
+                note, "org", at[1].link, f"the address {at[0]}", last if schema.is_date(last) else crm.today()
+            )
+            changes.add(crm.save(note))
+        found.append({"person": person.link, "org": at[1].link, "address": at[0]})
+    return {"dry_run": dry_run, "linked": found, "unreadable": unreadable, "changed": list(changes)}
 
 
 def create_missing_references(crm, dry_run=False):

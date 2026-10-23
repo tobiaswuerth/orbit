@@ -7,6 +7,8 @@ candidates:
   - "[[Hans]]"
   - "[[Hans Müller]]"
 decision: pending
+answer_yes: false
+answer_no: false
 source: "[[2026-10-18 Email – Segelwochenende Bodensee]]"
 created: 2026-10-18
 ---
@@ -19,4 +21,4 @@ created: 2026-10-18
 - Signed only "Hansi", with no surname and no signature.
 
 ## How to answer
-Set `decision` to `same` or `different`. orbit then merges the two notes, or records them as different people.
+Tick Yes or No in the Review base (`answer_yes` or `answer_no`). On Yes, orbit merges the two notes; on No, it records them as different people.

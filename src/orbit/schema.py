@@ -162,7 +162,7 @@ TYPES = {
                 Field("status", "choice", choices=("open", "waiting", "done", "cancelled")),
                 Field("due", "date"),
                 Field("due_note"),
-                Field("owner", "link", to=_people),
+                Field("owner", "link", to=(PERSON, ORGANIZATION)),  # an organization owes refunds, fixes, answers
                 Field("related", "link", many=True),
                 Field("origin", "link"),
             ),
@@ -180,6 +180,7 @@ TYPES = {
                 Field("orgs", "link", many=True, to=_orgs),
                 Field("people", "link", many=True, to=_people),
                 _documents,
+                Field("merged_from", "id", many=True, managed=True),
                 Field("distinct_from", "link", many=True, to=(TOPIC,), managed=True),
             ),
             ("Notes", "Observations", "Documents", "History"),
@@ -195,6 +196,8 @@ TYPES = {
                 Field("candidates", "link", many=True),
                 Field("address", "email"),
                 Field("decision", "choice", choices=("pending", "same", "different", "yes", "no", "answered")),
+                Field("answer_yes", "bool"),  # boxes to tick in the Review base, one click each
+                Field("answer_no", "bool"),
                 Field("answer"),  # an open question's, in the owner's words
                 Field("applied", "date", managed=True),
                 Field("source", "ref"),

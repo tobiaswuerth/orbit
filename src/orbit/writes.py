@@ -17,6 +17,7 @@ RELATIONS = {
     TOPIC: ("orgs", "people"),
 }
 CONTACTED = ("from", "to", "cc", "participants")  # the people an interaction counts as contact with; not `mentioned`
+OPEN_TASKS = 50  # of those whom an interaction is with, the most log_interaction lists; it counts the rest
 MANAGED = {
     "last_contact": "log_interaction sets it",
     "distinct_from": "answered reviews set it",
@@ -78,13 +79,21 @@ ALIKE = {PERSON: 0.85, ORGANIZATION: 0.75, TOPIC: 0.7}
 
 
 def _upsert(crm, type_name, match, fields, source, reason, provisional=False, distinct_from=None):
+    if provisional and edits.listed(distinct_from):
+        raise OrbitError(
+            "provisional says it may be one of them, distinct_from that it is not: give one. Unsure: provisional, "
+            "then propose_review; sure it is someone else: distinct_from"
+        )
     link, date = crm.source(source)
     cleaned = _fields(crm, type_name, fields)
     new = isinstance(match, str) and match.strip().lower() == "new"
     existing = _retried(crm, type_name, cleaned, link, reason) if new else crm.find(match, (type_name,), role="match")
     distinct = [crm.find(ref, (type_name,), role="distinct_from") for ref in edits.listed(distinct_from)]
+    extra = {}
     if type_name == PERSON:
         _check_emails(crm, cleaned.get("emails", []), existing)
+        if org := _org_by_address(crm, cleaned, existing):
+            cleaned["org"] = extra["org_from_domain"] = org.link
     if type_name == ORGANIZATION:
         _check_organization(crm, cleaned, existing)
     changes = Changes()
@@ -97,7 +106,7 @@ def _upsert(crm, type_name, match, fields, source, reason, provisional=False, di
         _reciprocate(crm, note, cleaned.get("colleague_of", []), changes)
         for other in distinct:
             changes.extend(_distinct(crm, other, note))
-        return _result(created, changes, created=True)
+        return _result(created, changes, created=True, **extra)
     note = crm.load(existing.path)
     filled, added, conflicts = [], {}, []
     for name, value in cleaned.items():
@@ -111,9 +120,17 @@ def _upsert(crm, type_name, match, fields, source, reason, provisional=False, di
             conflicts.append({"field": name, "stored": note.fields[name], "given": value})
     changes.add(crm.save(note))
     _reciprocate(crm, note, added.get("colleague_of", []), changes)
-    extra = {"hint": "set_fields changes a stored value"} if conflicts else {}
+    extra |= {"hint": "set_fields changes a stored value"} if conflicts else {}
     entity = {"id": existing.id, "name": existing.name, "path": str(crm.vault.path(existing.path))}
     return _result(entity, changes, created=False, filled=filled, added=added, conflicts=conflicts, **extra)
+
+
+def _org_by_address(crm, cleaned, existing):
+    """The organization a person without one works at by the addresses given: see resolve.organization_of. None if an
+    org is given or set, and for the owner, whose school or employer is theirs to say."""
+    if cleaned.get("org") or (existing and (existing.fields.get("me") or existing.fields.get("org"))):
+        return None
+    return next(filter(None, (resolve.organization_of(crm, e) for e in cleaned.get("emails", []))), None)
 
 
 def _refuse_alike(crm, type_name, cleaned, distinct):
@@ -412,11 +429,15 @@ def set_fields(crm, entity, changes, source, observed_at, evidence=None, remove=
         if found.type == PERSON and name == "org":
             _moved(note, None if corrects else stored, value)
         applied.append(name)
-    removed = [{"field": n, "item": i} for n, items in taken.items() for i in _remove(note, n, items, link, observed)]
+    removed = [
+        {"field": n, "item": i}
+        for n, items in taken.items()
+        for i in edits.remove_items(note, n, items, link, observed)
+    ]
     saved = Changes([c for c in [crm.save(note)] if c])
     for colleague in [r["item"] for r in removed if r["field"] == "colleague_of"]:  # colleagues both ways
         other = crm.load(crm.find(colleague).path)
-        if _remove(other, "colleague_of", [schema.link(note.name)], link, observed):
+        if edits.remove_items(other, "colleague_of", [schema.link(note.name)], link, observed):
             saved.add(crm.save(other))
     extra = {"removed": removed} if remove else {}
     return _result(_entity(crm, found), saved, applied=applied, not_applied=refused, **extra)
@@ -437,22 +458,6 @@ def _removals(found, spec, remove):
         if not isinstance(items, list) or not all(isinstance(i, str) and i.strip() for i in items):
             raise OrbitError(f'remove: {name} takes a list of items, e.g. {{"{name}": ["…"]}}')
     return remove
-
-
-def _remove(note, name, items, link, date):
-    """Take the items out of a list field, each with a line in the history. The items taken out, as they were."""
-    current = edits.listed(note.fields.get(name))
-    gone = [c for c in current if any(edits.same(c, i) for i in items)]
-    if not gone:
-        return []
-    kept = [c for c in current if c not in gone]
-    if kept:
-        note.fields[name] = kept
-    else:
-        note.fields.pop(name, None)
-    lines = [Change(date, name, str(item), None, link).line() for item in gone]
-    note.body.append("History", lines, schema.TYPES[note.type].sections)
-    return gone
 
 
 def _set_by(note, field, link):
@@ -548,7 +553,20 @@ def log_interaction(
             "upsert_organization or upsert_topic, this interaction as source; then add them all with one "
             "link_entities call and `links`"
         )
-    return _result(created, changes, existing=False, **extra, **_thread_of(crm, note.path))
+    threaded = _thread_of(crm, note.path)
+    in_thread = {t["name"] for t in threaded.get("thread", {}).get("open_tasks", [])}
+    if tasks := [t for t in _open_tasks(crm, fields) if t["name"] not in in_thread]:
+        extra["open_tasks"] = tasks[:OPEN_TASKS]
+        extra |= {"open_tasks_more": len(tasks) - OPEN_TASKS} if len(tasks) > OPEN_TASKS else {}
+    return _result(created, changes, existing=False, **extra, **threaded)
+
+
+def _open_tasks(crm, fields):
+    """The open tasks of the people and organizations an interaction is with, but the owner's own: those it may
+    settle."""
+    linked = [fields.get(k) for k in (*CONTACTED, "orgs")]
+    involved = [crm.find(link) for link in dict.fromkeys(item for value in linked for item in edits.listed(value))]
+    return reads.open_tasks(crm, [e for e in involved if not e.fields.get("me")])
 
 
 def _logged_already(crm, entity):
@@ -727,7 +745,7 @@ def create_task(
         {"status": status, "due": due, "due_note": due_note, "owner": owner, "related": related, "origin": origin_link},
     )
     if "owner" not in fields:
-        raise OrbitError("owner: who is to do it, a person; Me for the owner")
+        raise OrbitError("owner: who is to do it, a person or an organization; Me for the owner")
     if not new and (similar := _similar_tasks(crm, title, fields)):
         raise OrbitError(
             f"similar open tasks: {', '.join(f'{t.link} ({t.id})' for t in similar)}. If this is one of them, call "
