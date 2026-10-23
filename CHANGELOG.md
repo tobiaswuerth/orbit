@@ -18,7 +18,8 @@ The owner's answers win, and take a click; people at their organization; organiz
 - A person given no organization, with none yet, gets the one their address is at: the organization whose domains
   hold its domain, or the nearest domain it is under (`students.school.example` is `school.example`'s).
   `upsert_person` says so in `org_from_domain`. Never by a free-mail domain, never for the owner.
-- `link_by_domain` (upkeep) links the people already in the vault so, each with a history line naming the address.
+- `link_by_domain` (upkeep) links the people already in the vault so, each with a history line naming the address,
+  dated by their last contact, so that a later email still changes it.
 - `resolve_entity` finds an organization by a subdomain of its domain.
 - `log_interaction` answers with `open_tasks`: the open tasks of the people and organizations the interaction is with,
   which it may settle; up to 50, and `open_tasks_more` counts the rest.

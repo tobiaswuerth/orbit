@@ -297,6 +297,19 @@ def test_people_without_an_org_are_linked_to_their_address_s_organization(crm):
     assert upkeep.link_by_domain(crm)["linked"] == []  # done once
 
 
+def test_a_link_by_domain_is_as_old_as_the_last_contact(crm):
+    # Dated today, the link looked newer than every email, and an older email's word on the person's org was refused.
+    person(crm, "Lea Frei", "lea@acme-ag.example", extra="last_contact: 2016-05-01\n")
+    crm.refresh()
+    upkeep.link_by_domain(crm)
+    assert "- 2016-05-01 · org: [[Acme AG]] · the address lea@acme-ag.example\n" in text(crm, "01_People/Lea Frei.md")
+    crm.vault.write("02_Organizations/Beta AG.md", "---\ntype: organization\nid: org_01M4WNN44RG8NK7BC7R54A18GE\n"
+                    "name: Beta AG\n---\n")  # fmt: skip
+    crm.refresh()
+    result = writes.set_fields(crm, "Lea Frei", {"org": "Beta AG"}, CHAT, "2017-01-10")
+    assert (result["applied"], fields(crm, "Lea Frei")["org"]) == (["org"], "[[Beta AG]]")
+
+
 def test_me_keeps_its_name(crm):
     with pytest.raises(OrbitError, match=r"Me.md keeps its name: notes link to the owner as \[\[Me\]\]"):
         upkeep.rename(crm, "Me", "Tobias", CHAT)

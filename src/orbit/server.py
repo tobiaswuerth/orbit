@@ -636,8 +636,8 @@ def build(crm, tools=None):
         """Link every person without an organization, but the owner, to the organization their address is at: the
         one whose domains hold its domain, or the nearest domain it is under (students.school.example,
         school.example); never by a free-mail domain, nor where several organizations claim it. Each link gets a
-        history line that names the address. Returns who was linked (`linked`), and the notes that couldn't be read
-        (`unreadable`)."""
+        history line that names the address, dated by their last contact. Returns who was linked (`linked`), and the
+        notes that couldn't be read (`unreadable`)."""
         return _run(upkeep.link_by_domain, crm, dry_run)
 
     @mcp.tool(annotations=WRITE)

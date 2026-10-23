@@ -383,7 +383,9 @@ def _different(crm, review, pair):
 
 def link_by_domain(crm, dry_run=False):
     """Link every person without an organization, but the owner, to the one their address is at (see
-    resolve.organization_of), with a history line that names the address. What was linked, or would be."""
+    resolve.organization_of), with a history line that names the address, dated when the address was last in use
+    (their last contact, else today): so that an email from after that still changes the organization. What was
+    linked, or would be."""
     found, changes, unreadable = [], Changes(), []
     for person in crm.entities(schema.PERSON):
         if person.fields.get("me") or person.fields.get("org") not in (None, ""):
@@ -398,7 +400,10 @@ def link_by_domain(crm, dry_run=False):
             except OrbitError as e:
                 unreadable.append(_left(crm, person.path, e))
                 continue
-            edits.set_value(note, "org", at[1].link, f"the address {at[0]}", crm.today())
+            last = str(note.fields.get("last_contact") or "")
+            edits.set_value(
+                note, "org", at[1].link, f"the address {at[0]}", last if schema.is_date(last) else crm.today()
+            )
             changes.add(crm.save(note))
         found.append({"person": person.link, "org": at[1].link, "address": at[0]})
     return {"dry_run": dry_run, "linked": found, "unreadable": unreadable, "changed": list(changes)}
