@@ -5,7 +5,7 @@ import datetime
 import json
 from pathlib import Path
 
-from . import __version__, console, index, lint, server, settings, vault
+from . import __version__, console, index, lint, schema, server, settings, vault
 from .crm import Crm
 from .errors import OrbitError, VaultInUse
 
@@ -42,12 +42,27 @@ def parser():
     check.add_argument("--json", action="store_true", help="as JSON")
     status = command("status", "notes per type, pending reviews and the state of the index")
     status.add_argument("--json", action="store_true", help="as JSON")
+    close = command("close-tasks", "cancel the open and waiting tasks from before a day, as their Cancel boxes do")
+    close.add_argument(
+        "--before",
+        required=True,
+        type=_day,
+        metavar="YYYY-MM-DD",
+        help="those from interactions dated before this day (a task from none: created before it)",
+    )
+    close.add_argument("--dry-run", action="store_true", help="only say which")
     return p
 
 
 def _folder(text):
     """A folder given on the command line; a leading ~ is the home folder, also where PowerShell and cmd pass it on."""
     return Path(text).expanduser()
+
+
+def _day(text):
+    if not schema.is_date(text.strip()):
+        raise argparse.ArgumentTypeError("a date, YYYY-MM-DD")
+    return text.strip()
 
 
 def _port(text):
@@ -125,10 +140,8 @@ def status(args):
         with Crm(root) as crm:
             crm.refresh()
             state, serving = crm.index.summary(), False
-    except VaultInUse:
-        db = index.read_only(path)
-        if db is None:
-            raise
+    except VaultInUse as e:
+        db = _read_only(path, e)
         state, serving = index.summary(db), True
         db.close()
     if args.json:
@@ -142,6 +155,14 @@ def status(args):
     return 0
 
 
+def _read_only(path, error):
+    """The index the orbit that holds the vault keeps, to read; the error it holds the vault with if it has none yet."""
+    db = index.read_only(path)
+    if db is None:
+        raise error
+    return db
+
+
 def _notes(counts):
     """'11 notes: 4 people, 1 organization, ...'."""
     total = sum(counts.values())
@@ -151,4 +172,49 @@ def _notes(counts):
     return console.count(total, "note") + (f": {', '.join(parts)}" if parts else "")
 
 
-COMMANDS = {"init": init, "serve": serve, "reindex": reindex, "lint": check, "status": status}
+def close_tasks(args):
+    """Tick the Cancel boxes of the open and waiting tasks from before a day; orbit, here or the server that holds the
+    vault, then cancels them."""
+    root = Path(args.vault).resolve()
+    try:
+        with Crm(root) as crm:
+            crm.refresh()
+            found = index.tasks_before(crm.index.db, args.before)
+            if not args.dry_run:
+                _tick_cancel(crm.vault, found)
+                crm.refresh({path for path, _ in found})  # as the server does when it notices
+            done, serving = "cancelled", False
+    except VaultInUse as e:
+        db = _read_only(index.location(root, settings.current().home), e)
+        found = index.tasks_before(db, args.before)
+        db.close()
+        if not args.dry_run:
+            _tick_cancel(vault.Vault(root), found)
+        done, serving = "ticked Cancel", True
+    for _, name in found:
+        print(f"{'would cancel' if args.dry_run else done}: {name}")
+    if not found:
+        console.say(f"no open or waiting tasks from before {args.before}")
+    elif serving and not args.dry_run:
+        console.say(f"{console.count(len(found), 'task')} ticked: orbit serve cancels them as it notices")
+    elif not args.dry_run:
+        console.say(f"{console.count(len(found), 'task')} cancelled")
+    return 0
+
+
+def _tick_cancel(vault_, found):
+    """Tick the Cancel box in each of these tasks' files, as the Follow-ups base does."""
+    for path, _ in found:
+        note = vault_.note(path)
+        note.fields["cancel"] = True
+        vault_.write(path, note.text())
+
+
+COMMANDS = {
+    "init": init,
+    "serve": serve,
+    "reindex": reindex,
+    "lint": check,
+    "status": status,
+    "close-tasks": close_tasks,
+}

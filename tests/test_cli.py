@@ -202,3 +202,54 @@ def test_stopping_with_ctrl_c_is_quiet(example, capsys, monkeypatch):
 
     monkeypatch.setattr(cli.server, "serve", interrupted)
     assert run(capsys, "serve", example, "--stdio") == (130, "", "")
+
+
+OPEN_TASK = "04_Tasks/Send revised offer for Wartungsvertrag 2027.md"
+WAITING_TASK = "04_Tasks/Anna Keller to follow up on the technical clarification.md"
+TASKS = ("Anna Keller to follow up on the technical clarification", "Send revised offer for Wartungsvertrag 2027")
+
+
+def test_close_tasks_cancels_the_open_and_waiting_tasks_from_before_a_date(example, capsys):
+    code, out, _ = run(capsys, "close-tasks", example, "--before", "2026-10-15", "--dry-run")
+    assert (code, out.splitlines()) == (0, [f"would cancel: {t}" for t in TASKS])
+    assert "status: open" in (example / OPEN_TASK).read_text(encoding="utf-8")
+    code, out, err = run(capsys, "close-tasks", example, "--before", "2026-10-15")
+    assert (code, out.splitlines()) == (0, [f"cancelled: {t}" for t in TASKS])
+    assert all("status: cancelled" in (example / p).read_text(encoding="utf-8") for p in (OPEN_TASK, WAITING_TASK))
+    assert "2 tasks cancelled" in err
+
+
+def test_close_tasks_dates_a_task_by_the_interaction_it_came_from(example, capsys):
+    code, out, err = run(capsys, "close-tasks", example, "--before", "2026-10-14")  # the email's own day
+    assert (code, out) == (0, "")
+    assert "no open or waiting tasks from before 2026-10-14" in err
+
+
+def test_close_tasks_dates_a_task_from_no_interaction_by_when_it_was_made(example, capsys):
+    task = example / OPEN_TASK
+    text = task.read_text(encoding="utf-8")
+    origin = 'origin: "[[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]]"\n'
+    task.write_text(text.replace(origin, "").replace("created: 2026-10-14", "created: 2026-10-20"), encoding="utf-8")
+    code, out, _ = run(capsys, "close-tasks", example, "--before", "2026-10-15", "--dry-run")
+    assert (code, out.splitlines()) == (0, [f"would cancel: {TASKS[0]}"])
+
+
+def test_close_tasks_ticks_the_boxes_for_the_server_that_holds_the_vault(example, home, capsys):
+    with Crm(example, home) as crm:  # holds the vault, as orbit serve does
+        crm.refresh()
+        assert run(capsys, "close-tasks", example, "--before", "2026-10-15", "--dry-run")[1].splitlines() == [
+            f"would cancel: {t}" for t in TASKS
+        ]
+        assert "cancel: true" not in (example / OPEN_TASK).read_text(encoding="utf-8")
+        code, out, err = run(capsys, "close-tasks", example, "--before", "2026-10-15")
+        assert (code, out.splitlines()) == (0, [f"ticked Cancel: {t}" for t in TASKS])
+        assert "orbit serve cancels them as it notices" in err
+        crm.refresh({OPEN_TASK, WAITING_TASK})  # what the server's watcher does
+        assert all("status: cancelled" in (example / p).read_text(encoding="utf-8") for p in (OPEN_TASK, WAITING_TASK))
+
+
+def test_close_tasks_wants_a_date(example, capsys):
+    assert run(capsys, "close-tasks", example)[0] == 2
+    code, _, err = run(capsys, "close-tasks", example, "--before", "15.10.2026")
+    assert code == 2
+    assert "--before: a date, YYYY-MM-DD" in err

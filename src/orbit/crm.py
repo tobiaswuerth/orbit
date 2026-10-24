@@ -85,8 +85,8 @@ class Crm:
 
     def refresh(self, paths=None):
         """Bring the index up to date with every note, or with the files at these vault paths, which may have changed,
-        appeared or gone, and apply the decisions the owner set on reviews. A change to orbit.toml or nicknames.txt is
-        read, and a change to anything that may be a folder brings on a full sync."""
+        appeared or gone, and apply the decisions the owner set on reviews and the tasks' Cancel boxes. A change to
+        orbit.toml or nicknames.txt is read, and a change to anything that may be a folder brings on a full sync."""
         if paths is None:
             report = self.index.sync()
         else:
@@ -98,10 +98,12 @@ class Crm:
                 report = self.index.sync()
             else:
                 report = self.index.refresh(p for p in paths if is_note_path(p))
-        if paths is None or any(
-            p.startswith(schema.TYPES[schema.REVIEW].folder) for p in report.added + report.changed
-        ):
+        touched = report.added + report.changed
+        if paths is None or any(p.startswith(schema.TYPES[schema.REVIEW].folder) for p in touched):
             upkeep.apply_reviews(self)
+        tasks = [p for p in touched if p.startswith(schema.TYPES[schema.TASK].folder)]
+        if paths is None or tasks:
+            upkeep.apply_task_boxes(self, None if paths is None else set(tasks))
         return report
 
     # Finding notes

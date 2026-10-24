@@ -5,11 +5,13 @@ when a note is renamed: in front matter and in every section of the body."""
 import re
 from pathlib import PurePosixPath
 
-from . import console, edits, names, resolve, reviews, schema, writes
+from . import console, edits, names, reads, resolve, reviews, schema, writes
 from .edits import Changes
 from .entries import Change
 from .errors import OrbitError
-from .schema import REVIEW
+from .schema import REVIEW, TASK
+
+CANCEL_BOX = "the owner's Cancel box"  # the source of a task cancelled by its box
 
 LINK = re.compile(r"\[\[([^\[\]|#^]+)((?:[#^|][^\[\]]*)?)\]\]")
 PLURALS = reviews.PLURALS  # the types a duplicate review is about
@@ -238,6 +240,26 @@ def _answer_reviews(crm, k, d, changes):
     return left
 
 
+def apply_task_boxes(crm, paths=None):
+    """Keep the tasks' Cancel boxes, of every task or those at these paths: an open or waiting task has one, and
+    ticked, it cancels the task, which says so and when; a closed task has none. The notes changed."""
+    changes = Changes()
+    for task in crm.entities(TASK):
+        if paths is not None and task.path not in paths:
+            continue
+        try:
+            if task.fields.get("cancel") is True and task.fields.get("status") in reads.OPEN:
+                for change in writes.update_task(crm, task.id or task.name, CANCEL_BOX, status="cancelled")["changed"]:
+                    changes.add(change)
+            elif writes.boxed(task.fields) != task.fields:
+                note = crm.load(task.path)
+                note.fields = writes.boxed(note.fields)
+                changes.add(crm.save(note))
+        except OrbitError:  # a note broken since it was indexed: lint says so
+            continue
+    return changes
+
+
 def apply_reviews(crm):
     """Apply the decisions set on reviews, or ticked in their boxes. A duplicate's `same` merges the newer note into
     the older one, even where an agent recorded them as different; `different` adds each note to the other's
@@ -316,10 +338,30 @@ def _add_address(crm, review, found):
     if names.is_role_address(address, crm.vault.config.role_addresses):
         raise OrbitError(f"{address} is a role address, which belongs to no person")
     if (holder := crm.index.holder("email", address)) and holder != found[0].path:
-        raise OrbitError(f"{address} belongs to {crm.entity(holder).link}")
+        asked = _asked_whether_one(crm, review, address, found[0], holder)
+        raise OrbitError(f"{address} belongs to {crm.entity(holder).link}{asked}")
     note = crm.load(found[0].path)
     edits.add_items(note, "emails", [address])
     return [c for c in [crm.save(note)] if c]
+
+
+def _asked_whether_one(crm, review, address, person, holder):
+    """Another person's note has the address the owner said is this person's (only people hold addresses): a
+    duplicate review of the two, whose yes merges them and lets the address follow. What it says, for the problem the
+    owner sees."""
+    other = crm.entity(holder)
+    asked = reviews.propose(
+        crm,
+        "duplicate",
+        f"Is {other.link} the same person as {person.link}?",
+        [person.link, other.link],
+        [f"You answered yes to {review.link}: {address} is {person.name}'s, and {other.link} has it."],
+        [],
+        review.link,
+    )
+    if asked.get("decision", "pending") == "pending":
+        return f": {schema.link(asked['name'])} asks whether they are one"
+    return f": you answered {asked['decision']} in {schema.link(asked['name'])}"
 
 
 def _change_job(crm, review, found):

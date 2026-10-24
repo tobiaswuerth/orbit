@@ -391,3 +391,69 @@ def test_the_owner_s_same_keeps_what_else_was_recorded_as_different(crm):
     crm.refresh()
     upkeep.merge(crm, "Hans Müller", "Hans", f"[[{REVIEW}]]", overrule=True)
     assert fields(crm, "Hans Müller")["distinct_from"] == ["[[Anna Keller]]"]
+
+
+# Tasks: the Cancel box
+
+OPEN_TASK = "04_Tasks/Send revised offer for Wartungsvertrag 2027.md"
+WAITING_TASK = "04_Tasks/Anna Keller to follow up on the technical clarification.md"
+
+
+def tick_cancel(crm, path):
+    """Tick a task's Cancel box, as the Follow-ups base's table does with one click."""
+    edit(crm, path, "cancel: false", "cancel: true")
+    return crm.refresh({path})
+
+
+def test_open_and_waiting_tasks_have_a_cancel_box(crm):
+    assert all("\ncancel: false\n" in text(crm, path) for path in (OPEN_TASK, WAITING_TASK))
+
+
+def test_ticking_cancel_cancels_the_task_and_says_when(crm):
+    tick_cancel(crm, WAITING_TASK)
+    written = text(crm, WAITING_TASK)
+    assert "\nstatus: cancelled\n" in written
+    assert "- 2026-10-22 · status: waiting → cancelled · the owner's Cancel box" in written
+    assert "cancel:" not in written  # a closed task has no box
+
+
+def test_a_task_from_before_the_box_gets_it(crm):
+    edit(crm, OPEN_TASK, "cancel: false\n", "")
+    crm.refresh({OPEN_TASK})
+    assert "\ncancel: false\n" in text(crm, OPEN_TASK)
+
+
+def test_a_task_closed_by_hand_loses_its_box(crm):
+    edit(crm, OPEN_TASK, "status: open", "status: done")
+    crm.refresh({OPEN_TASK})
+    assert "cancel:" not in text(crm, OPEN_TASK)
+
+
+def test_a_task_closed_by_an_agent_loses_its_box_and_one_opened_again_gets_it(crm):
+    task = "Send revised offer for Wartungsvertrag 2027"
+    writes.update_task(crm, task, CHAT, status="done")
+    assert "cancel:" not in text(crm, OPEN_TASK)
+    writes.update_task(crm, task, CHAT, status="open")
+    assert "\ncancel: false\n" in text(crm, OPEN_TASK)
+
+
+def test_a_new_task_comes_with_its_box(crm):
+    made = writes.create_task(crm, "Book a room for the workshop", "Me", EMAIL)
+    assert "\ncancel: false\n" in text(crm, made["path"])
+    assert "cancel:" not in text(crm, writes.create_task(crm, "Pay the deposit", "Me", EMAIL, status="done")["path"])
+
+
+def test_a_cancel_box_ticked_on_a_closed_task_is_dropped(crm):
+    edit(crm, OPEN_TASK, "status: open\n", "status: done\n")
+    edit(crm, OPEN_TASK, "cancel: false", "cancel: true")
+    crm.refresh({OPEN_TASK})
+    written = text(crm, OPEN_TASK)
+    assert ("\nstatus: done\n" in written, "cancel:" in written) == (True, False)
+
+
+def test_a_task_broken_since_it_was_indexed_is_left(crm):
+    edit(crm, WAITING_TASK, "cancel: false", "cancel: true")
+    crm.index.refresh([WAITING_TASK])  # indexed ticked, then broken by hand before orbit acted on it
+    edit(crm, WAITING_TASK, "cancel: true", "cancel: true\nteam:\n  name: x")
+    upkeep.apply_task_boxes(crm)
+    assert "\nstatus: waiting\n" in text(crm, WAITING_TASK)

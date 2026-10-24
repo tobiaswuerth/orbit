@@ -358,6 +358,28 @@ def test_an_address_someone_else_has_is_reported(crm):
     assert "anna.keller@acme-ag.example belongs to [[Anna Keller]]" in crm.review_problems[path]
 
 
+def test_an_address_someone_else_has_asks_whether_the_two_are_one(crm):
+    # The owner said an address was a person's; a note named after the address held it, and nothing came of the yes.
+    path = ask_address(crm, "anna.keller@acme-ag.example", "Hans Müller")
+    decide(crm, "yes", path)
+    (asked,) = [r for r in crm.entities("review") if r.fields.get("kind") == "duplicate" and r.path != REVIEW]
+    assert sorted(asked.fields["candidates"]) == ["[[Anna Keller]]", "[[Hans Müller]]"]
+    assert f"{asked.link} asks whether they are one" in crm.review_problems[path]
+    decide(crm, "same", asked.path)
+    crm.refresh()
+    assert "anna.keller@acme-ag.example" in fields(crm, "Hans Müller")["emails"]
+    assert path not in crm.review_problems
+
+
+def test_an_address_of_someone_answered_different_says_so(crm):
+    path = ask_address(crm, "anna.keller@acme-ag.example", "Hans Müller")
+    decide(crm, "yes", path)
+    (asked,) = [r for r in crm.entities("review") if r.fields.get("kind") == "duplicate" and r.path != REVIEW]
+    decide(crm, "different", asked.path)
+    crm.refresh()
+    assert f"you answered different in {asked.link}" in crm.review_problems[path]
+
+
 @pytest.mark.parametrize(
     "candidates, address, message",
     [

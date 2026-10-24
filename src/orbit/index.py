@@ -333,6 +333,23 @@ def read_only(path):
     return db
 
 
+def tasks_before(db, day):
+    """(path, name) of the open and waiting tasks from before `day` (YYYY-MM-DD), in name order: dated by the
+    interaction they came from, or else by when they were created."""
+    dates = {
+        names.file_key(name): str(json.loads(fields).get("date") or "")[:10]
+        for name, fields in db.execute("SELECT name, fields FROM notes WHERE type = 'interaction'")
+    }
+    found = []
+    for path, name, text in db.execute("SELECT path, name, fields FROM notes WHERE type = 'task'"):
+        fields = json.loads(text)
+        origin = schema.link_target(fields.get("origin"))
+        when = (origin and dates.get(names.file_key(origin))) or str(fields.get("created") or "")[:10]
+        if fields.get("status") in ("open", "waiting") and when and when < day:
+            found.append((path, name))
+    return sorted(found, key=lambda found: names.file_key(found[1]))
+
+
 def summary(db):
     """What an index holds: notes per type (None for notes of no known type), pending reviews, clashes and notes that
     couldn't be read."""

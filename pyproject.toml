@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "orbit-crm"
-version = "0.8.0"
+version = "0.9.0"
 description = "Personal CRM MCP server: AI agents keep your network as an Obsidian vault of plain Markdown notes. People, organizations, emails and meetings, tasks and topics, with duplicate detection, email threads and a source for every fact. Local-first: no cloud, no LLM inside."
 readme = "README.md"
 license = "MIT"

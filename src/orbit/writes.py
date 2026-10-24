@@ -754,7 +754,7 @@ def create_task(
         )
     quoted = [f"> {line}" for line in str(details or "").strip().splitlines()]
     note = crm.new(
-        TASK, schema.TYPES[TASK].folder, " ".join(title.split()), fields, [("Details", quoted), ("Notes", [])]
+        TASK, schema.TYPES[TASK].folder, " ".join(title.split()), boxed(fields), [("Details", quoted), ("Notes", [])]
     )
     changes = Changes()
     created = changes.add(crm.save(note, created=True))
@@ -766,6 +766,17 @@ def create_task(
             interaction.body.append("Action items", [item], schema.TYPES[INTERACTION].sections)
             changes.add(crm.save(interaction))
     return _result(created, changes, existing=False)
+
+
+def boxed(fields):
+    """A task's fields with its Cancel box: an unticked one while it is open or waiting, none once it is closed. A task
+    of a status orbit doesn't know is left as it is, for lint to report."""
+    status = fields.get("status")
+    if status in reads.OPEN:
+        return fields if "cancel" in fields else fields | {"cancel": False}
+    if status in ("done", "cancelled") and "cancel" in fields:
+        return {k: v for k, v in fields.items() if k != "cancel"}
+    return fields
 
 
 def _similar_tasks(crm, title, fields):
@@ -809,5 +820,6 @@ def update_task(crm, task, source, status=None, due=None, due_note=None, note=No
         said.append(" ".join(note.split()))
     if not said:
         return _result(_entity(crm, found), [], updated=False)
+    page.fields = boxed(page.fields)
     page.body.append("Details", [f"- {date} · {'; '.join(said)} · {link}"], schema.TYPES[TASK].sections)
     return _result(_entity(crm, found), [crm.save(page)], updated=True)

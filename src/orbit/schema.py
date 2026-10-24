@@ -165,6 +165,7 @@ TYPES = {
                 Field("owner", "link", to=(PERSON, ORGANIZATION)),  # an organization owes refunds, fixes, answers
                 Field("related", "link", many=True),
                 Field("origin", "link"),
+                Field("cancel", "bool"),  # a box to tick in the Follow-ups base: orbit cancels the task
             ),
             ("Details", "Notes"),
             ("status",),

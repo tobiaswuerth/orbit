@@ -5,6 +5,24 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-24
+
+A Cancel box on tasks, and a command to cancel old ones at once.
+
+### Added
+
+- Tasks have a Cancel box: an open or waiting task has `cancel: false`, which the Follow-ups base shows; ticked, orbit
+  cancels the task the next time it reads it, and its Details say so with the day. A closed task has none. Tasks
+  written before get their box when orbit next reads them; `orbit init` leaves an existing `Follow-ups.base`: add
+  `cancel` to its two task views, or delete it and run `orbit init` for the new one.
+- `orbit close-tasks [VAULT] --before DAY` cancels the open and waiting tasks from interactions dated before a day
+  (`--dry-run` lists them); while `orbit serve` holds the vault, it ticks their boxes and the server cancels them.
+
+### Changed
+
+- An address the owner confirmed for a person that another person's note has brings a duplicate review of the two,
+  instead of only a lint warning: its yes merges them, and the address follows.
+
 ## [0.8.0] - 2026-10-23
 
 The owner's answers win, and take a click; people at their organization; organizations that owe tasks.
