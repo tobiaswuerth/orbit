@@ -43,7 +43,14 @@ GROUPS = {
         "propose_review",
         "settle_review",
     ),
-    "upkeep": ("merge_entities", "rename_entity", "link_by_domain", "create_missing_references", "lint_vault"),
+    "upkeep": (
+        "merge_entities",
+        "rename_entity",
+        "link_by_domain",
+        "create_missing_references",
+        "lint_vault",
+        "retract_observation",
+    ),
 }
 ENDPOINTS = {"/mcp": None, "/mcp/write": ("read", "write"), "/mcp/read": ("read",)}  # None: all the vault serves
 
@@ -661,6 +668,21 @@ def build(crm, tools=None):
         clashing file names, links to notes that don't exist, unknown fields, and notes edited by hand that broke a
         rule. Issues are errors or warnings, each with the note, its path and what to do."""
         return _run(lint.lint, crm, fix)
+
+    @mcp.tool(annotations=DELETE)
+    async def retract_observation(
+        entity: Annotated[str, Field(description="A person, organization or topic: id or name.")],
+        statement: Annotated[
+            str, Field(description="The observation's statement, exactly as get_entity_context shows it.")
+        ],
+        why: Annotated[str, Field(description="Why it isn't so, in a line, e.g. 'the email was about Anna Keller'.")],
+        source: Source,
+    ) -> dict:
+        """Take back an observation that isn't so, or that sits on the wrong note: it leaves the note's Observations,
+        and a line in its History keeps it, with its evidence and source, why, and this source. Every observation of
+        the note with that statement goes (`retracted`: how many). To record the fact where it belongs,
+        add_observation there."""
+        return _run(writes.retract_observation, crm, entity, statement, why, source)
 
     for name in left:
         mcp.remove_tool(name)

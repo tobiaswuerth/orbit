@@ -4,7 +4,7 @@ absolute paths of the notes it created or changed."""
 
 from . import console, edits, evidence, ids, names, reads, resolve, schema
 from .edits import Changes
-from .entries import CONFIDENCE, Change, Observation
+from .entries import CONFIDENCE, Change, Observation, text
 from .errors import OrbitError
 from .schema import INTERACTION, ORGANIZATION, PERSON, TASK, TOPIC
 from .sections import text_lines
@@ -388,6 +388,30 @@ def _same_fact(known, new):
     if known.source == new.source:
         return known.statement == new.statement
     return known.evidence.casefold() == new.evidence.casefold()
+
+
+def retract_observation(crm, entity, statement, why, source):
+    found = crm.find(entity, schema.ENTITY, role="entity")
+    if not all(isinstance(v, str) and v.strip() for v in (statement, why)):
+        raise OrbitError("statement and why: the observation's statement as get_entity_context shows it, and why")
+    link, date = crm.source(source)
+    note, said = crm.load(found.path), text(statement)
+    lines = note.body.lines("Observations") or []
+    wrong = [o for o in map(Observation.parse, lines) if o and o.statement == said]
+    if not wrong:
+        known = [repr(o.statement) for o in map(Observation.parse, lines) if o]
+        listed = (
+            f"give one of its statements as get_entity_context shows it: {', '.join(known)}" if known else "it has none"
+        )
+        raise OrbitError(f"statement: no observation on {found.name} says {said!r}; {listed}")
+    kept = [x for x in lines if (o := Observation.parse(x)) is None or o.statement != said]
+    sections = schema.TYPES[found.type].sections
+    note.body.replace("Observations", kept, sections)
+    history = [
+        Change(date, "retracted", f"{o.statement} ‹{o.evidence}› {o.source}", text(why), link).line() for o in wrong
+    ]
+    note.body.append("History", history, sections)
+    return _result(_entity(crm, found), [crm.save(note)], retracted=len(wrong))
 
 
 def set_fields(crm, entity, changes, source, observed_at, evidence=None, remove=None):

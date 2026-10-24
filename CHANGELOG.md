@@ -5,6 +5,15 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-24
+
+### Added
+
+- `retract_observation` takes back an observation that isn't so, or that sits on the wrong note: it leaves the note's
+  Observations, and a `retracted:` line in its History keeps it, with its evidence and source, why, and who took it
+  back. An upkeep tool, served on `/mcp` only, as merges are. A review could add facts, but never take a wrong one
+  back.
+
 ## [0.9.0] - 2026-10-24
 
 A Cancel box on tasks, and a command to cancel old ones at once.
