@@ -161,6 +161,17 @@ def test_differing_values_are_kept_and_go_to_review(crm):
     assert review["sections"]["Evidence against"] == "- location: Hans had Romanshorn"
 
 
+def test_a_merge_brings_back_no_fact_either_note_had_taken_back(crm):
+    # The duplicate still held a fact taken back from the note it was merged into.
+    for name in ("Hans", "Hans Müller"):
+        writes.add_observation(crm, name, "Sails", "Segeln", "high", f"[[{SAILING}]]")
+    writes.add_observation(crm, "Hans", "Rows", "Rudern", "high", f"[[{SAILING}]]")
+    writes.retract_observation(crm, "Hans Müller", "Sails", "that was his brother", CHAT)
+    upkeep.merge(crm, "Hans Müller", "Hans", CHAT)
+    observations = text(crm, "01_People/Hans Müller.md").split("## Observations")[1].split("## History")[0]
+    assert ("Sails" not in observations, "· Rows ·" in observations) == (True, True)
+
+
 def test_blank_fields_are_filled_and_the_owners_writing_is_kept(crm):
     edit(crm, "01_People/Hans.md", "## Notes\n", "## Notes\nOwns a boat.\n\n## Family\n- two kids\n")
     edit(crm, "01_People/Hans.md", "context:", "boat: Lacustre\ncontext:")

@@ -5,6 +5,22 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-24
+
+### Added
+
+- `retract_observation` takes back an observation that isn't so, or that sits on the wrong note: it leaves the note's
+  Observations, and a `retracted:` line in its History keeps it whole, with why and who took it back. It isn't
+  recorded again from the same source or with the same words (`add_observation` says when and why it was taken back),
+  and a merge doesn't bring it back from the other note; taking it back again changes nothing. An upkeep tool, served
+  on `/mcp` only, as merges are. A review could add facts, but never take a wrong one back.
+
+### Changed
+
+- Observation and history text turns " → " into " -> ", as it turns « » into ‹ ›: an arrow of its own split a history
+  line in the wrong place.
+- `orbit serve` says what `/mcp/write` leaves out: all upkeep, not only merges, renames and lint.
+
 ## [0.9.0] - 2026-10-24
 
 A Cancel box on tasks, and a command to cancel old ones at once.

@@ -39,6 +39,7 @@ TOOLS = [
     "link_by_domain",
     "create_missing_references",
     "lint_vault",
+    "retract_observation",
 ]
 
 
@@ -104,7 +105,10 @@ def test_read_tools_are_marked_read_only(mcp):
     found = tools(mcp)
     reading = {"resolve_entity", "get_entity_context", "search_entities", "list_entities"}
     assert {name for name, tool in found.items() if tool.annotations.read_only_hint} == reading
-    assert {name for name, tool in found.items() if tool.annotations.destructive_hint} == {"merge_entities"}
+    assert {name for name, tool in found.items() if tool.annotations.destructive_hint} == {
+        "merge_entities",
+        "retract_observation",
+    }
     assert not found["update_task"].annotations.idempotent_hint
 
 
@@ -116,7 +120,7 @@ def test_propose_review_says_what_each_answer_to_a_duplicate_does(mcp):
 
 
 READS = TOOLS[:4]
-UPKEEP = ["merge_entities", "rename_entity", "link_by_domain", "create_missing_references", "lint_vault"]
+UPKEEP = TOOLS[-6:]
 
 
 def test_tools_come_in_groups_by_what_they_may_change():
@@ -136,7 +140,7 @@ def test_a_server_with_some_tools_says_which_it_leaves_out(crm):
     assert list(tools(mcp)) == [t for t in TOOLS if t not in UPKEEP]
     assert (
         "This connection offers only some of orbit's tools; the vault's owner left out merge_entities, rename_entity, "
-        "link_by_domain, create_missing_references and lint_vault." in mcp.instructions
+        "link_by_domain, create_missing_references, lint_vault and retract_observation." in mcp.instructions
     )
     assert "left out" not in server.build(crm).instructions
 
@@ -239,6 +243,10 @@ def test_write_tools(mcp, crm):
     assert merged["id"] == "per_01M4WNN540CGMAHYXV1R90AA5V"
     assert data(call(mcp, "create_missing_references", {"dry_run": True}))["created"] == []
     assert data(call(mcp, "link_by_domain", {"dry_run": True}))["linked"] == []
+    fact = {"entity": "Acme AG", "statement": "Has 200 staff", "evidence": "200", "confidence": "high", "source": chat}
+    call(mcp, "add_observation", fact)
+    taken = {"entity": "Acme AG", "statement": "Has 200 staff", "why": "it has 20", "source": chat}
+    assert data(call(mcp, "retract_observation", taken))["retracted"] == 1
 
 
 def test_several_links_and_addresses_through_mcp(mcp):
@@ -311,7 +319,7 @@ def test_serve_over_http(example, home, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "on http://[::]:9000/mcp" in err
     assert "warning: listening on ::, so anyone who reaches port 9000 can read and change the CRM" in err
-    assert "/mcp/write: no merges, renames or lint; /mcp/read: reading only" in err
+    assert "/mcp/write: no upkeep (merges, renames, lint, retractions, …); /mcp/read: reading only" in err
 
 
 def test_serve_offers_the_tools_orbit_toml_or_the_command_allows(example, home, monkeypatch):

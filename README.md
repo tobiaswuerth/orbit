@@ -90,7 +90,7 @@ none, `orbit init` says so.
    server's instructions: resolve before writing, write only what a source states, and name the source.
 
 One server serves any number of agents, and gives each the tools its URL asks for: `/mcp` all of them,
-`/mcp/write` all but upkeep (merges, renames, creating missing references, lint), and `/mcp/read` only reading. An
+`/mcp/write` all but upkeep (merges, renames, creating missing references, lint, retracting observations), and `/mcp/read` only reading. An
 agent that should log mail but never merge connects to `http://127.0.0.1:8775/mcp/write`, whatever its client can
 hide. orbit.toml's `server.tools`, or `orbit serve --tools read,write`, narrows `/mcp` itself, and the others with it.
 Every endpoint also offers the resource `orbit://vault`, for programs that need to know what a server serves: the
@@ -188,6 +188,7 @@ merged, and to keep its links pointing at renamed notes. An example vault with a
 | `link_by_domain` | People without an organization linked to the one their address is at, or under. |
 | `create_missing_references` | Notes for links to notes that don't exist yet: mapped to an alias, or a stub of the type the link's field asks for. |
 | `lint_vault` | Schema conformance, duplicate ids and addresses, clashing file names, broken links, unknown fields; `fix` repairs the safe cases. |
+| `retract_observation` | Take back an observation that isn't so, or sits on the wrong note: it moves to the note's History, with why. |
 
 Every write names its `source`, returns the ids and absolute paths of the notes it changed, and does nothing when
 called again with the same arguments, where it can. Errors say what to do next. Every parameter is described in the

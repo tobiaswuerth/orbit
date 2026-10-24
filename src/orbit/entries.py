@@ -18,8 +18,9 @@ EMPTY = '""'  # the value of a field that was cleared
 
 
 def text(value):
-    """Text as one line that can't be taken for the separators: whitespace collapsed, « » as ‹ ›, " · " as ", "."""
-    value = re.sub(r"\s+", " ", value).strip().replace("«", "‹").replace("»", "›")
+    """Text as one line that can't be taken for the separators: whitespace collapsed, « » as ‹ ›, " · " as ", ",
+    " → " as " -> "."""
+    value = re.sub(r"\s+", " ", value).strip().replace("«", "‹").replace("»", "›").replace(ARROW, " -> ")
     return value.replace(SEP.strip(), ",").replace(" ,", ",") if SEP.strip() in value else value
 
 
