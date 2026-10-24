@@ -54,13 +54,13 @@ Create a vault, with your own note, `Me.md`, and your addresses, so that agents 
 orbit init ~/crm --name "Tobias" --email tobias@example.com
 ```
 
-Open the folder as a vault in Obsidian. `orbit init` also writes three [Bases](https://obsidian.md/help/bases) views
-to `95_Bases/`, tables you can sort, filter and edit in place: **People** (everyone, by organization, not contacted
-for a year, to confirm), **Follow-ups** (open tasks, tasks others owe you, people to get back to within two weeks)
-and **Review** (questions waiting for your answer: tick Yes or No, or type your answer to an open question). Run
-`orbit init` on an existing vault to add what it lacks; it
-never overwrites a file, so it leaves an existing `Me.md` as it is: add more addresses to its `emails` yourself. As
-long as `Me.md` has none, `orbit init` says so.
+Open the folder as a vault in Obsidian. `orbit init` also writes three [Bases](https://obsidian.md/help/bases) views to
+`95_Bases/`, tables you can sort, filter and edit in place: **People** (everyone, by organization, not contacted for a
+year, to confirm), **Follow-ups** (open tasks, tasks others owe you, people to get back to within two weeks; tick a
+task's Cancel box once it is no longer needed) and **Review** (questions waiting for your answer: tick Yes or No, or
+type your answer to an open question). Run `orbit init` on an existing vault to add what it lacks; it never overwrites a
+file, so it leaves an existing `Me.md` as it is: add more addresses to its `emails` yourself. As long as `Me.md` has
+none, `orbit init` says so.
 
 ## Setting up the MCP server
 
@@ -202,6 +202,7 @@ tools' schemas, for the agents that read them.
 | `orbit lint [VAULT]` | Check the vault (`--fix`, `--json`); exits with 1 if errors remain. |
 | `orbit reindex [VAULT]` | Build the index again from the notes. |
 | `orbit status [VAULT]` | Notes per type, pending reviews, clashes and the index, also while a server runs. |
+| `orbit close-tasks [VAULT] --before DAY` | Cancel the open and waiting tasks from interactions before a day, as their Cancel boxes do (`--dry-run`). |
 
 `VAULT` defaults to the current folder. Results go to stdout; everything else orbit says goes to stderr.
 

@@ -24,6 +24,11 @@ def test_the_bases_and_their_views():
     }
 
 
+def test_the_task_views_have_the_cancel_box():
+    views = yaml.safe_load(bases.templates()["Follow-ups.base"])["views"]
+    assert ["cancel" in v["order"] for v in views] == [True, True, False]
+
+
 def filters(node):
     """Every filter statement in a filter tree."""
     if isinstance(node, str):

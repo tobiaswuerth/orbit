@@ -10,6 +10,7 @@ related:
   - "[[Acme AG]]"
   - "[[Wartungsvertrag 2027]]"
 origin: "[[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]]"
+cancel: false
 created: 2026-10-14
 updated: 2026-10-14
 ---

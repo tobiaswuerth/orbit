@@ -52,7 +52,7 @@ too, so that links to them resolve, but only notes with a `type` are entities.
 | person | `type`, `id`, `name`, `me`, `aliases`, `emails`, `phones`, `org`, `job_title`, `department`, `former_orgs`, `reports_to`, `assistant_of`, `colleague_of`, `introduced_by`, `context` (professional, personal, both), `languages`, `salutation` (du, Sie), `location`, `last_contact`, `next_followup`, `review_status` (confirmed, needs_review), `merged_from`, `distinct_from`, `documents`, `created`, `updated` |
 | organization | `type`, `id`, `name`, `aliases`, `domains`, `uid_che`, `industry`, `location`, `address`, `website`, `parent`, `relationship` (client, prospect, partner, vendor, employer, personal), `merged_from`, `distinct_from`, `documents`, `created`, `updated` |
 | interaction | `type`, `id`, `kind` (email, meeting, call, message, note, automated), `date`, `direction` (inbound, outbound), `subject`, `from`, `to`, `cc`, `participants`, `mentioned`, `orgs`, `topics`, `language`, `message_id`, `in_reply_to`, `replies_to`, `thread`, `source_file`, `sha256`, `documents`, `created` |
-| task | `type`, `id`, `status` (open, waiting, done, cancelled), `due`, `due_note`, `owner`, `related`, `origin`, `created`, `updated` |
+| task | `type`, `id`, `status` (open, waiting, done, cancelled), `due`, `due_note`, `owner`, `related`, `origin`, `cancel`, `created`, `updated` |
 | topic | `type`, `id`, `name`, `aliases`, `status` (active, paused, closed), `orgs`, `people`, `documents`, `merged_from`, `distinct_from`, `created`, `updated` |
 | review | `type`, `id`, `kind` (duplicate, job_change, address, other, question), `question`, `candidates`, `address`, `decision` (pending, same, different, yes, no, answered), `answer_yes`, `answer_no`, `answer`, `applied`, `source`, `created` |
 
@@ -102,11 +102,20 @@ changed, or cleared (`→ ""`), and items taken out of a list (`emails: old@acme
 tell whether a new value is newer than the stored one. A person's `org` changed by another source than the one that
 set it moves the old one to `former_orgs`; changed by the same source, it is a correction and moves nothing.
 
+## Tasks
+
+An open or waiting task has a Cancel box (`cancel: false`), which the Follow-ups base shows. Ticked, orbit cancels the
+task the next time it reads the note, and its Details say so with the day (`status: waiting → cancelled · the owner's
+Cancel box`); a closed task has no box. `orbit close-tasks --before DAY` ticks the boxes of the open and waiting tasks
+from interactions dated before a day (or, from none, created before it), for many at once.
+
 ## Reviews
 
 A review asks the owner one question. A yes-or-no question they answer in Obsidian with one click, ticking Yes or No
 in the Review base (its `answer_yes` and `answer_no` boxes), or by setting `decision`; orbit sets the decision the box
-says and applies it the next time it reads the note. Both boxes ticked is no answer, which `lint_vault` lists. For a
+says and applies it the next time it reads the note. Both boxes ticked is no answer, which `lint_vault` lists. An
+address answered yes that another person's note has brings a duplicate review of the two: its yes merges them, and the
+address follows. For a
 duplicate, No (`different`) adds each note to the other's `distinct_from`, and confirms a provisional person
 (`review_status: needs_review`); Yes (`same`) merges the newer note into the older one, also where an agent recorded
 the two as different: the owner's answer wins over an agent's, and each note's history says so (`distinct_from: Hans

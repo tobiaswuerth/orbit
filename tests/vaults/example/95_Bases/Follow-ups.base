@@ -1,7 +1,10 @@
-# What is due: tasks, and people to get back to. Written by orbit init; change it as you like.
+# What is due: tasks, and people to get back to. Tick Cancel on a task that is no longer needed. Written by orbit
+# init; change it as you like.
 properties:
   file.name:
     displayName: Task
+  cancel:
+    displayName: Cancel
   due_note:
     displayName: As stated
   next_followup:
@@ -19,6 +22,7 @@ views:
       - due_note
       - related
       - origin
+      - cancel
     sort:
       - property: due
         direction: ASC
@@ -34,6 +38,7 @@ views:
       - due
       - due_note
       - origin
+      - cancel
     sort:
       - property: due
         direction: ASC
