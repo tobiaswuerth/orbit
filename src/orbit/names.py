@@ -183,8 +183,10 @@ def email_tokens(address):
 
 
 def is_role_address(address, roles):
-    """Whether an address belongs to a role or a mailbox (info@, noreply@), never to a person."""
-    return email(address).partition("@")[0].partition("+")[0] in roles
+    """Whether an address belongs to a role or a mailbox (info@, noreply@), never to a person: its local part is a
+    role, or a word of it, between dots, dashes or underscores (acme-support@, office-zurich@, customer.service@)."""
+    local = email(address).partition("@")[0].partition("+")[0]
+    return local in roles or any(word in roles for word in re.split(r"[._-]", local))
 
 
 def normalize_domain(text):

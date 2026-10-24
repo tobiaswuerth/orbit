@@ -5,6 +5,20 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `lint_vault` names a note whose name isn't its file's, which links name (a name set by hand or by an older orbit's
+  `set_fields`): rename the note with `rename_entity`, or set the name back. A number or what tells two notes of one
+  name apart, in brackets, Me.md, and characters no file name may hold are fine.
+
+### Changed
+
+- A role word as a word of an address makes it a mailbox too: `acme-support@`, `office-zurich@` and
+  `customer.service@` never go on a person, as `support@` didn't. `hr` and `service` join the default roles; a vault
+  made before keeps its `identity.role_addresses`, to which they can be added.
+- `set_fields` refuses a new `name`: it changed the name but neither the file nor the links to it. `rename_entity`
+  renames a note; `upsert_*` records another name in `aliases`.
+
 ## [0.10.0] - 2026-10-24
 
 ### Added

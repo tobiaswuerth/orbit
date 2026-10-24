@@ -517,7 +517,8 @@ def build(crm, tools=None):
         field's last one (its `observed_at` before that change's date) isn't applied: a new value becomes an
         observation, a clearing is dropped, and `not_applied` says so. Lists grow with upsert_* and link_entities;
         `remove` takes items out of them, also with a history line (`removed` lists what came out). A person's org
-        that the same source set before is corrected, not moved to former_orgs."""
+        that the same source set before is corrected, not moved to former_orgs. A note's name is its file's:
+        rename_entity changes it, and upsert_* adds another to aliases."""
         return _run(writes.set_fields, crm, entity, changes, source, observed_at, evidence, remove)
 
     @mcp.tool(annotations=WRITE)

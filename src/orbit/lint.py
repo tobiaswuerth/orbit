@@ -4,7 +4,7 @@ only what is safe to repair without asking: a missing id, and addresses and doma
 import json
 from pathlib import PurePosixPath
 
-from . import edits, ids, index, schema
+from . import edits, ids, index, names, schema
 
 FOLDERS = {t.folder: t.name for t in schema.TYPES.values()}
 ORDER = {"error": 0, "warning": 1}
@@ -65,6 +65,14 @@ def lint(crm, fix=False):
                     "not lower case",
                     f"{', '.join(loud)}: lint_vault with fix writes them in lower case",
                 )
+        if kind in schema.ENTITY and not fields.get("me") and _not_the_file_s(PurePosixPath(path).stem, fields):
+            issue(
+                "warning",
+                path,
+                "name not the file's",
+                f"its name {fields['name']!r} isn't its file's: rename_entity renames the file and the links to it, "
+                "or set the name back",
+            )
         if path in crm.review_problems:
             issue("warning", path, "not applied", crm.review_problems[path])
     for clash in crm.index.clashes():
@@ -89,6 +97,15 @@ def lint(crm, fix=False):
     issues.sort(key=lambda i: (ORDER[i["severity"]], i["path"], i["rule"]))
     counts = {s: sum(i["severity"] == s for i in issues) for s in ORDER}
     return {"issues": issues, "counts": counts, "fixed": list(fixed)}
+
+
+def _not_the_file_s(stem, fields):
+    """Whether a note's name isn't its file's, which links name: a file is named after the name, made safe, with a
+    number or what tells it apart in brackets where another note had the name already."""
+    if not isinstance(name := fields.get("name"), str) or not name.strip():
+        return False  # no name is a schema problem of its own
+    base, found = names.file_key(names.file_name(name)), names.file_key(stem)
+    return found != base and not (found.startswith(f"{base} (") and found.endswith(")"))
 
 
 def _not_lowercase(kind, fields):

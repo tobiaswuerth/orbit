@@ -753,8 +753,12 @@ def test_set_fields_clears_only_what_it_may_change(crm, name, message):
         ({}, "2026-11-20", "changes: an object"),
         ({"job_title": "x"}, None, "observed_at: None is not a date"),
         ({"review_status": "maybe"}, "2026-11-20", "review_status: 'maybe' is not one of"),
+        # an import renamed a person this way: the file and every link kept the old name
+        ({"name": "Hans Peter Müller"}, "2026-11-20",
+         "name: a note's name is its file's, which links name: rename_entity renames both; to record another name, "
+         "add it to aliases with upsert_person"),
     ],
-)
+)  # fmt: skip
 def test_set_fields_refuses(crm, changes, observed_at, message):
     with pytest.raises(OrbitError, match=message):
         writes.set_fields(crm, "Hans Müller", changes, CHAT, observed_at)

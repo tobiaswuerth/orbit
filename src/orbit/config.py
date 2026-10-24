@@ -14,7 +14,7 @@ FREE_MAIL_LINES = (
 )
 ROLE_LINES = (
     ("info", "noreply", "no-reply", "donotreply", "team", "sales", "support", "office", "hello", "contact"),
-    ("admin", "newsletter"),
+    ("admin", "newsletter", "hr", "service"),
 )
 FREE_MAIL_DOMAINS = tuple(d for line in FREE_MAIL_LINES for d in line)
 ROLE_ADDRESSES = tuple(r for line in ROLE_LINES for r in line)
@@ -34,7 +34,7 @@ port = {port}
 free_mail_domains = [
 {free_mail}
 ]
-# Local parts of addresses that belong to a role or a mailbox, never to a person.
+# Local parts of addresses, or words of them (acme-support@), that belong to a role or a mailbox, never to a person.
 role_addresses = [
 {roles}
 ]

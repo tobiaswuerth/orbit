@@ -2,7 +2,7 @@
 
 import pytest
 
-from orbit import names
+from orbit import config, names
 from orbit.names import Nicknames
 
 
@@ -110,10 +110,31 @@ def test_an_address_bare_or_as_a_header_writes_it(text, address):
 
 
 def test_role_addresses():
-    roles = {"info", "noreply"}
+    roles = {"info", "noreply", "support", "office", "service"}
     assert names.is_role_address("info@acme.example", roles)
     assert names.is_role_address("Info+news@acme.example", roles)
     assert not names.is_role_address("hans@acme.example", roles)
+
+
+@pytest.mark.parametrize(
+    "address, role",
+    [
+        ("acme-support@acme.example", True),  # a team's mailbox, which one person signed
+        ("office-zurich@acme.example", True),
+        ("customer.service@acme.example", True),
+        ("support_de@acme.example", True),
+        ("supporter@acme.example", False),  # a word of its own
+        ("hans.mueller@acme.example", False),
+        ("officer.hans@acme.example", False),
+    ],
+)
+def test_a_role_word_in_an_address_makes_it_a_mailbox(address, role):
+    # A support desk's and an office's addresses landed on the people who signed from them.
+    assert names.is_role_address(address, {"support", "office", "service"}) is role
+
+
+def test_hr_and_service_mailboxes_are_roles_by_default():
+    assert {"hr", "service"} <= set(config.ROLE_ADDRESSES)
 
 
 def test_the_domains_a_domain_is_under():
