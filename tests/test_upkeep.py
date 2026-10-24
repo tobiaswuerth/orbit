@@ -6,7 +6,7 @@ from orbit import reads, upkeep, writes
 from orbit.errors import OrbitError
 from orbit.lint import lint
 
-CHAT = "Tobias in chat, 2026-10-22"
+CHAT = "Max in chat, 2026-10-22"
 EMAIL = "2026-10-14 Email – AW Offerte Wartungsvertrag 2027"
 SAILING = "2026-10-18 Email – Segelwochenende Bodensee"
 REVIEW = "2026-10-18 Duplicate – Hans and Hans Müller"
@@ -159,6 +159,22 @@ def test_differing_values_are_kept_and_go_to_review(crm):
     assert review["fields"]["candidates"] == ["[[Hans Müller]]"]
     assert review["sections"]["Evidence for"] == "- location: kept Winterthur"
     assert review["sections"]["Evidence against"] == "- location: Hans had Romanshorn"
+
+
+def test_renaming_a_note_to_its_file_s_name_sets_its_name(crm):
+    # Renamed in Obsidian, which rewrites the links but not `name:`: lint named it, and no tool could set it.
+    edit(crm, "01_People/Hans.md", "name: Hans", "name: Hans Brand")
+    crm.refresh()
+    result = upkeep.rename(crm, "Hans", "Hans", CHAT)
+    assert (result["name"], len(result["changed"])) == ("Hans", 1)
+    found = fields(crm, "Hans")
+    assert (found["name"], found["aliases"][-1]) == ("Hans", "Hans Brand")
+    assert [i for i in lint(crm)["issues"] if i["rule"] == "name not the file's"] == []
+    assert upkeep.rename(crm, "Hans", "Hans", CHAT)["changed"] == []  # in line: nothing to do
+    edit(crm, "01_People/Anna Keller.md", "name: Anna Keller\n", "")  # a note made by hand, without one
+    crm.refresh()
+    upkeep.rename(crm, "Anna Keller", "Anna Keller", CHAT)
+    assert (fields(crm, "Anna Keller")["name"], fields(crm, "Anna Keller").get("aliases")) == ("Anna Keller", None)
 
 
 def test_a_merge_brings_back_no_fact_either_note_had_taken_back(crm):
@@ -325,7 +341,7 @@ def test_a_link_by_domain_is_as_old_as_the_last_contact(crm):
 
 def test_me_keeps_its_name(crm):
     with pytest.raises(OrbitError, match=r"Me.md keeps its name: notes link to the owner as \[\[Me\]\]"):
-        upkeep.rename(crm, "Me", "Tobias", CHAT)
+        upkeep.rename(crm, "Me", "Max", CHAT)
 
 
 def test_fields_other_than_text_are_left_as_they_are(crm):

@@ -22,7 +22,7 @@ updated: 2026-10-14
 ## Notes
 
 ## Observations
-- 2026-10-14 · On first-name terms with Tobias (du) · «Lieber Tobias» · [[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]] · high
+- 2026-10-14 · On first-name terms with Max (du) · «Lieber Max» · [[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]] · high
 - 2026-10-14 · Decides on the budget for the 2027 maintenance contract · «Das Budget für 2027 ist freigegeben.» · [[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]] · medium
 
 ## History

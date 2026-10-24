@@ -16,5 +16,5 @@ free_mail_domains = [
 # Local parts of addresses that belong to a role or a mailbox, never to a person.
 role_addresses = [
   "info", "noreply", "no-reply", "donotreply", "team", "sales", "support", "office", "hello", "contact",
-  "admin", "newsletter",
+  "admin", "newsletter", "hr", "service",
 ]

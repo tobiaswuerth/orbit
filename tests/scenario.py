@@ -7,7 +7,7 @@ EMAIL = "[[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]]"
 SAILING = "[[2026-10-18 Email – Segelwochenende Bodensee]]"
 ID = re.compile(r"\b(per|org|int|tsk|top|rev)_[0-9A-Z]{26}\b")
 
-OWNER = ("Tobias", ["tobias@meinefirma.example", "tobias.privat@mail.example"])
+OWNER = ("Max", ["max@meinefirma.example", "max.privat@mail.example"])
 
 STEPS = [
     (
@@ -105,8 +105,8 @@ STEPS = [
         "add_observation",
         {
             "entity": "Hans Müller",
-            "statement": "On first-name terms with Tobias (du)",
-            "evidence": "Lieber Tobias",
+            "statement": "On first-name terms with Max (du)",
+            "evidence": "Lieber Max",
             "confidence": "high",
             "source": EMAIL,
         },
@@ -184,7 +184,7 @@ STEPS = [
             "direction": "inbound",
             "to": ["Me"],
             "language": "de",
-            "summary": "Hans asks whether Tobias has time to go sailing on Lake Constance on 7 November, starting in "
+            "summary": "Hans asks whether Max has time to go sailing on Lake Constance on 7 November, starting in "
             "Romanshorn.",
             "key_quote": "Hast du am 7. November Zeit fürs Segeln auf dem Bodensee?",
             "message_id": "<CAF3x9Q2kq7Lm@mail.gmail.com>",
@@ -221,7 +221,7 @@ STEPS = [
             "evidence_for": [
                 "The address hansi.mueller@gmail.com carries the surname Müller (as mueller), and Hansi is a "
                 "nickname for Hans.",
-                "Both write to Tobias on first-name terms (du).",
+                "Both write to Max on first-name terms (du).",
             ],
             "evidence_against": [
                 "A private address and a private topic. Nothing in the email mentions Acme AG.",

@@ -51,7 +51,7 @@ Or run it without installing, `uvx orbit-crm serve ~/crm`, or install it with pi
 Create a vault, with your own note, `Me.md`, and your addresses, so that agents never take you for a contact:
 
 ```bash
-orbit init ~/crm --name "Tobias" --email tobias@example.com
+orbit init ~/crm --name "Max" --email max@example.com
 ```
 
 Open the folder as a vault in Obsidian. `orbit init` also writes three [Bases](https://obsidian.md/help/bases) views to
@@ -187,7 +187,7 @@ merged, and to keep its links pointing at renamed notes. An example vault with a
 | `rename_entity` | A new name and file name; every link to the note follows. |
 | `link_by_domain` | People without an organization linked to the one their address is at, or under. |
 | `create_missing_references` | Notes for links to notes that don't exist yet: mapped to an alias, or a stub of the type the link's field asks for. |
-| `lint_vault` | Schema conformance, duplicate ids and addresses, clashing file names, broken links, unknown fields; `fix` repairs the safe cases. |
+| `lint_vault` | Schema conformance, duplicate ids and addresses, clashing file names, names that aren't their file's, broken links, unknown fields; `fix` repairs the safe cases. |
 | `retract_observation` | Take back an observation that isn't so, or sits on the wrong note: it moves to the note's History, with why. |
 
 Every write names its `source`, returns the ids and absolute paths of the notes it changed, and does nothing when
@@ -217,7 +217,7 @@ tools' schemas, for the agents that read them.
 | `server.host`, `server.port` | `127.0.0.1`, `8775` | Where `orbit serve` listens. It warns when told to listen beyond this machine. |
 | `server.tools` | all | The tool groups (`read`, `write`, `upkeep`) or tools that `/mcp` offers; `/mcp/write` and `/mcp/read` offer less. |
 | `identity.free_mail_domains` | gmail.com, outlook.com, gmx.ch, bluewin.ch, … | Domains that say nothing about an employer. |
-| `identity.role_addresses` | info, noreply, team, sales, support, … | Mailboxes that never belong to a person. |
+| `identity.role_addresses` | info, noreply, team, sales, support, hr, service, … | Mailboxes that never belong to a person, by the whole local part. A vault made before keeps its list: add new ones to it. |
 
 `99_System/nicknames.txt` lists first names that stand for one another, one group per line: `Hans = Hansi =
 Hansruedi`. The one environment variable, `ORBIT_HOME` (default `~/.orbit/`), says where the indexes live: outside

@@ -7,7 +7,7 @@ import pytest
 from orbit import writes
 from orbit.errors import OrbitError
 
-EMAIL = "Grüezi Herr Würth\n\nDas Budget für 2027 ist **freigegeben**. Wir starten im Januar.\n\nFreundliche Grüsse\n"
+EMAIL = "Grüezi Herr Doe\n\nDas Budget für 2027 ist **freigegeben**. Wir starten im Januar.\n\nFreundliche Grüsse\n"
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def observe(crm, source, evidence, statement="Approved the 2027 budget"):
         "Das Budget für 2027 ist freigegeben.",
         '"das budget für 2027 ist  freigegeben"',  # quotes, case and spaces aside; ** too
         "Das Budget für 2027 … Wir starten im Januar.",
-        "Grüezi Herr Würth ... Freundliche Grüsse",
+        "Grüezi Herr Doe ... Freundliche Grüsse",
     ],
 )
 def test_a_quote_in_the_source_is_taken(crm, logged, evidence):
@@ -64,12 +64,12 @@ def test_set_fields_evidence_is_checked_too(crm, logged):
 
 def test_a_source_orbit_cant_read_isnt_checked(crm, logged, tmp_path):
     # A chat, a file gone, or an email with a PDF attached, which the quote may come from.
-    assert observe(crm, "Tobias in chat, 2026-10-22", "words of no file")["existing"] is False
+    assert observe(crm, "Max in chat, 2026-10-22", "words of no file")["existing"] is False
     logged[1].unlink()
     assert observe(crm, logged[0], "words of a file gone")["existing"] is False
     logged[1].write_text(EMAIL, encoding="utf-8")
     (tmp_path / "offer.pdf").write_bytes(b"%PDF")
-    writes.link_document(crm, logged[0], str(tmp_path / "offer.pdf"), "Offer", "Tobias in chat, 2026-10-22")
+    writes.link_document(crm, logged[0], str(tmp_path / "offer.pdf"), "Offer", "Max in chat, 2026-10-22")
     assert observe(crm, logged[0], "Preis: CHF 12'000", "Offered for CHF 12'000")["existing"] is False
 
 
@@ -77,7 +77,7 @@ def test_a_text_document_of_the_interaction_counts(crm, logged, tmp_path):
     (tmp_path / "notes.md").write_text("Preis: CHF 12'000 pro Jahr\n", encoding="utf-8")
     (tmp_path / "gone.md").write_text("x", encoding="utf-8")
     for name in ("notes.md", "gone.md"):
-        writes.link_document(crm, logged[0], str(tmp_path / name), name, "Tobias in chat, 2026-10-22")
+        writes.link_document(crm, logged[0], str(tmp_path / name), name, "Max in chat, 2026-10-22")
     (tmp_path / "gone.md").unlink()
     assert observe(crm, logged[0], "Preis: CHF 12'000 pro Jahr")["existing"] is False
     with pytest.raises(OrbitError, match="evidence"):

@@ -7,7 +7,7 @@ import pytest
 from orbit import reads, writes
 from orbit.errors import OrbitError
 
-CHAT = "Tobias in chat, 2026-10-22"
+CHAT = "Max in chat, 2026-10-22"
 
 
 def fields(crm, ref):

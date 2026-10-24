@@ -183,7 +183,8 @@ def email_tokens(address):
 
 
 def is_role_address(address, roles):
-    """Whether an address belongs to a role or a mailbox (info@, noreply@), never to a person."""
+    """Whether an address belongs to a role or a mailbox (info@, noreply@), never to a person. Its whole local part
+    decides: a role word in a person's address (anna.office@) doesn't make it a mailbox."""
     return email(address).partition("@")[0].partition("+")[0] in roles
 
 

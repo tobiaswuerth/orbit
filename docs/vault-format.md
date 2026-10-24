@@ -22,7 +22,8 @@ too, so that links to them resolve, but only notes with a `type` are entities.
 ## Names and ids
 
 - **The file name is the note's name and link target**: `[[Hans Müller]]`. File names are unique across the vault,
-  compared as links compare them (any case, any Unicode form), so a link never depends on a folder.
+  compared as links compare them (any case, any Unicode form), so a link never depends on a folder. A note's `name`
+  is its file's: `rename_entity` changes both, and `lint_vault` names a note whose `name` went its own way.
 - On a clash, orbit adds a distinguisher, `Hans Müller (Acme AG).md`, or else a number, `Hans Müller (2).md`, and
   keeps the plain name in `aliases`. A long name is first cut at a word, to 120 characters and 240 bytes of UTF-8,
   so that it fits the limits of every system.
@@ -88,7 +89,7 @@ Windows credentials. A relative path stays as it is: orbit can't tell what it is
 | review | `## Evidence for`, `## Evidence against`, `## How to answer`; once an answer is acted on, `## Applied` (what was done with it) |
 
 Observations and history lines carry their date and their source: an interaction's link, or a short description such
-as `Tobias in chat, 2026-10-22`.
+as `Max in chat, 2026-10-22`.
 
 ```
 - 2026-10-14 · <fact> · «<the source's words>» · [[<source>]] · high

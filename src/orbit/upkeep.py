@@ -80,6 +80,19 @@ def _unlink_self(note, selves):
             note.fields.pop(field.name)
 
 
+def _name_as_file(crm, found, new_name, link, date):
+    """Set a note's `name` to its file's, with a history line, the old one kept in `aliases`; the changes made."""
+    note = crm.load(found.path)
+    spec = schema.TYPES.get(note.type)
+    old = note.fields.get("name")
+    if not (spec and spec.field("name")) or old == new_name:
+        return []
+    edits.set_value(note, "name", new_name, link, date)
+    if spec.field("aliases") and isinstance(old, str) and old.strip():
+        edits.add_items(note, "aliases", [old])
+    return [crm.save(note)]
+
+
 def rename(crm, ref, new_name, source):
     found = crm.find(ref, role="id_or_name")
     if not isinstance(new_name, str) or not new_name.strip():
@@ -89,8 +102,8 @@ def rename(crm, ref, new_name, source):
     link, date = crm.source(source)
     new_name = " ".join(new_name.split())
     stem = names.file_name(new_name)
-    if stem == found.name:
-        return _result(crm, found, found.path, [])
+    if stem == found.name:  # the file has the name already, as after a rename in Obsidian: its `name` follows
+        return _result(crm, found, found.path, _name_as_file(crm, found, new_name, link, date))
     holder = crm.index.holder("name", names.file_key(stem))
     if holder and holder != found.path:
         raise OrbitError(f"new_name: a note called {stem} exists already: {crm.entity(holder).link}")

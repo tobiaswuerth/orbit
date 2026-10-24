@@ -8,7 +8,7 @@ from orbit import reads, writes
 from orbit.errors import OrbitError
 
 EMAIL = "[[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]]"
-CHAT = "Tobias in chat, 2026-10-22"
+CHAT = "Max in chat, 2026-10-22"
 HANS = "01_People/Hans Müller.md"
 
 
@@ -79,7 +79,7 @@ def test_a_file_as_source_is_the_interaction_logged_from_it(crm, tmp_path):
     )
 
 
-@pytest.mark.parametrize("path", ["D:\\mail\\2026\\x.md", "/home/tobias/mail/x.eml", "\\\\server\\mail\\x.eml"])
+@pytest.mark.parametrize("path", ["D:\\mail\\2026\\x.md", "/home/john/mail/x.eml", "\\\\server\\mail\\x.eml"])
 def test_a_file_no_interaction_was_logged_from_is_no_source(crm, path):
     with pytest.raises(OrbitError, match=r"source: .* is a file no interaction was logged from: log the interaction"):
         writes.add_observation(crm, "Acme AG", "x", "y", "high", path)
@@ -96,7 +96,7 @@ def test_a_new_person_records_why_and_from_where(crm, example):
     ]
     assert text(crm, "01_People/Lea Frei.md").endswith(
         "review_status: confirmed\ncreated: 2026-10-22\nupdated: 2026-10-22\n---\n## Notes\n\n"
-        "## History\n- 2026-10-22 · created: met at a fair · Tobias in chat, 2026-10-22\n"
+        "## History\n- 2026-10-22 · created: met at a fair · Max in chat, 2026-10-22\n"
     )
 
 
@@ -151,7 +151,7 @@ def test_an_org_from_the_domain_only_where_none_is_given(crm):
     assert (fields(crm, given["id"])["org"], "org_from_domain" in given) == ("[[Beta AG]]", False)
     private = writes.upsert_person(crm, "new", {"name": "Max Muster", "emails": ["max@gmail.com"]}, CHAT, "x")
     assert "org" not in fields(crm, private["id"])
-    writes.upsert_person(crm, "Me", {"emails": ["tobias@acme-ag.example"]}, CHAT)
+    writes.upsert_person(crm, "Me", {"emails": ["max@acme-ag.example"]}, CHAT)
     assert "org" not in fields(crm, "Me")  # the owner's school or employer is theirs to say
 
 
@@ -231,9 +231,7 @@ def test_a_new_topic_is_active_and_records_why_only_if_told(crm):
     assert fields(crm, result["id"])["status"] == "active"
     assert "## History" not in text(crm, "05_Topics/Messe 2027.md")
     result = writes.upsert_topic(crm, "new", {"name": "Messe 2028"}, CHAT, "planned in chat")
-    assert "- 2026-10-22 · created: planned in chat · Tobias in chat, 2026-10-22" in text(
-        crm, "05_Topics/Messe 2028.md"
-    )
+    assert "- 2026-10-22 · created: planned in chat · Max in chat, 2026-10-22" in text(crm, "05_Topics/Messe 2028.md")
 
 
 # link_entities
@@ -315,7 +313,7 @@ def test_log_interaction_links_the_people_whose_addresses_it_knows(crm):
         "2026-10-20T08:00:00+02:00",
         subject="Kickoff",
         sender="Hans.Mueller@acme-ag.example",
-        to=["tobias@meinefirma.example", "lea@frei.example"],
+        to=["max@meinefirma.example", "lea@frei.example"],
         cc=["info@acme-ag.example", "Anna Keller"],
     )
     logged = fields(crm, result["id"])
@@ -375,11 +373,11 @@ def test_an_interaction_from_a_local_file_links_the_file(crm, tmp_path):
 
 def test_changing_a_persons_org_moves_the_old_one_to_former_orgs(crm):
     writes.upsert_organization(crm, "new", {"name": "Beta GmbH"}, CHAT, "a new employer")
-    result = writes.link_entities(crm, "Hans Müller", "org", "Beta GmbH", "Tobias in chat, 2026-11-20")
+    result = writes.link_entities(crm, "Hans Müller", "org", "Beta GmbH", "Max in chat, 2026-11-20")
     assert (result["to"], result["linked"]) == ("[[Beta GmbH]]", True)
     found = fields(crm, "Hans Müller")
     assert (found["org"], found["former_orgs"]) == ("[[Beta GmbH]]", ["[[Acme AG]]"])
-    assert text(crm, HANS).endswith("- 2026-10-22 · org: [[Acme AG]] → [[Beta GmbH]] · Tobias in chat, 2026-11-20\n")
+    assert text(crm, HANS).endswith("- 2026-10-22 · org: [[Acme AG]] → [[Beta GmbH]] · Max in chat, 2026-11-20\n")
     writes.link_entities(crm, "Hans Müller", "org", "Acme AG", CHAT)
     found = fields(crm, "Hans Müller")
     assert (found["org"], found["former_orgs"]) == ("[[Acme AG]]", ["[[Beta GmbH]]"])
@@ -388,7 +386,7 @@ def test_changing_a_persons_org_moves_the_old_one_to_former_orgs(crm):
 def test_an_org_the_same_source_takes_back_is_a_correction_not_a_former_org(crm):
     # An import set an org on a guess and took it back; former_orgs kept an employment no one had stated.
     writes.upsert_organization(crm, "new", {"name": "Beta GmbH"}, CHAT, "a new employer")
-    said = "Tobias in chat, 2026-11-20"
+    said = "Max in chat, 2026-11-20"
     writes.link_entities(crm, "Hans Müller", "org", "Beta GmbH", said)  # a change: Acme AG was another source's
     writes.set_fields(crm, "Hans Müller", {"org": "Acme AG"}, said, "2026-11-20")  # the same source takes it back
     found = fields(crm, "Hans Müller")
@@ -403,7 +401,7 @@ def test_items_come_out_of_a_list_with_a_line_in_the_history(crm):
     result = writes.set_fields(crm, "Hans Müller", {}, CHAT, "2026-10-22", remove={"emails": ["Hans@Old.example"]})
     assert result["removed"] == [{"field": "emails", "item": "hans@old.example"}]
     assert "hans@old.example" not in fields(crm, "Hans Müller")["emails"]
-    assert text(crm, HANS).endswith('- 2026-10-22 · emails: hans@old.example → "" · Tobias in chat, 2026-10-22\n')
+    assert text(crm, HANS).endswith('- 2026-10-22 · emails: hans@old.example → "" · Max in chat, 2026-10-22\n')
     again = writes.set_fields(crm, "Hans Müller", {}, CHAT, "2026-10-22", remove={"emails": ["hans@old.example"]})
     assert (again["removed"], again["changed"]) == ([], [])  # gone already: nothing to do
     assert crm.index.holder("email", "hans@old.example") is None  # the index knows
@@ -509,14 +507,14 @@ def test_link_document(crm):
 @pytest.mark.parametrize(
     "document, link",
     [
-        ("/home/tobias/Offers/Offer v2.pdf", "file:///home/tobias/Offers/Offer%20v2.pdf"),
+        ("/home/john/Offers/Offer v2.pdf", "file:///home/john/Offers/Offer%20v2.pdf"),
         ("D:\\Scans\\ID.JPG", "file:///D:/Scans/ID.JPG"),
         ("Offers/Offer.pdf", "Offers/Offer.pdf"),  # relative: to what, orbit can't tell
         ("doc-4711", "doc-4711"),
         # A click must neither run a program nor send the owner's Windows credentials to another computer, as a
         # file on a share does: an email can talk an agent into linking either.
         ("C:\\Tools\\setup.exe", "C:\\Tools\\setup.exe"),
-        ("/home/tobias/run.sh", "/home/tobias/run.sh"),
+        ("/home/john/run.sh", "/home/john/run.sh"),
         ("\\\\server\\share\\Offer.pdf", "\\\\server\\share\\Offer.pdf"),
     ],
 )
@@ -674,14 +672,21 @@ def test_retract_observation_refuses(crm, entity, statement, why, message):
         writes.retract_observation(crm, entity, statement, why, CHAT)
 
 
+def test_set_fields_takes_a_name_as_it_is(crm):
+    # A caller that hands back the whole record, its name unchanged, isn't refused for it.
+    result = writes.set_fields(crm, "Hans Müller", {"name": "Hans Müller", "location": "Zug"}, CHAT, "2026-11-20")
+    assert fields(crm, "Hans Müller")["location"] == "Zug"
+    assert result["name"] == "Hans Müller"
+
+
 def test_set_fields_writes_a_history_line_dated_when_observed(crm):
     result = writes.set_fields(
-        crm, "Hans Müller", {"job_title": "Head of Procurement", "location": "Zürich"}, "Tobias in chat", "2026-11-20"
+        crm, "Hans Müller", {"job_title": "Head of Procurement", "location": "Zürich"}, "Max in chat", "2026-11-20"
     )
     assert (result["applied"], result["not_applied"]) == (["job_title", "location"], [])
     page = text(crm, HANS)
-    assert "- 2026-11-20 · job_title: Leiter Einkauf → Head of Procurement · Tobias in chat\n" in page
-    assert "- 2026-11-20 · location: Zürich · Tobias in chat\n" in page
+    assert "- 2026-11-20 · job_title: Leiter Einkauf → Head of Procurement · Max in chat\n" in page
+    assert "- 2026-11-20 · location: Zürich · Max in chat\n" in page
 
 
 def test_set_fields_keeps_a_newer_value_and_notes_the_older_one(crm):
@@ -722,7 +727,7 @@ def test_set_fields_clears_and_moves_orgs(crm):
     assert result["applied"] == ["org", "job_title"]
     found = fields(crm, "Hans Müller")
     assert (found["org"], found["former_orgs"], "job_title" in found) == ("[[Beta GmbH]]", ["[[Acme AG]]"], False)
-    assert '- 2026-11-20 · job_title: Leiter Einkauf → "" · Tobias in chat, 2026-10-22\n' in text(crm, HANS)
+    assert '- 2026-11-20 · job_title: Leiter Einkauf → "" · Max in chat, 2026-10-22\n' in text(crm, HANS)
     unchanged = writes.set_fields(crm, "Hans Müller", {"org": "Beta GmbH", "department": ""}, CHAT, "2026-11-21")
     assert (unchanged["applied"], unchanged["changed"]) == ([], [])
 
@@ -753,8 +758,12 @@ def test_set_fields_clears_only_what_it_may_change(crm, name, message):
         ({}, "2026-11-20", "changes: an object"),
         ({"job_title": "x"}, None, "observed_at: None is not a date"),
         ({"review_status": "maybe"}, "2026-11-20", "review_status: 'maybe' is not one of"),
+        # an import renamed a person this way: the file and every link kept the old name
+        ({"name": "Hans Peter Müller"}, "2026-11-20",
+         "name: a note's name is its file's, which links name: rename_entity renames both; to record another name, "
+         "add it to aliases with upsert_person"),
     ],
-)
+)  # fmt: skip
 def test_set_fields_refuses(crm, changes, observed_at, message):
     with pytest.raises(OrbitError, match=message):
         writes.set_fields(crm, "Hans Müller", changes, CHAT, observed_at)
@@ -1048,9 +1057,7 @@ def test_update_task_appends_what_changed_to_its_details(crm):
     assert result["updated"] is True
     page = text(crm, f"04_Tasks/{task}.md")
     assert "status: done\n" in page
-    assert (
-        "- 2026-10-22 · status: waiting → done; She called on Monday. · Tobias in chat, 2026-10-22\n\n## Notes" in page
-    )
+    assert "- 2026-10-22 · status: waiting → done; She called on Monday. · Max in chat, 2026-10-22\n\n## Notes" in page
     assert writes.update_task(crm, task, CHAT, status="done")["updated"] is False
     writes.update_task(crm, task, EMAIL, due_note="sofort")
     assert "- 2026-10-14 · due_note: nächste Woche → sofort · " in text(crm, f"04_Tasks/{task}.md")

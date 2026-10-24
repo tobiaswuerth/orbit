@@ -32,6 +32,29 @@ def test_finds_a_planted_unknown_field_and_a_broken_link(crm):
     assert result["issues"][0]["path"] == str(crm.vault.path("01_People/Anna Keller.md"))
 
 
+def test_a_name_that_isnt_its_file_s_is_named(crm):
+    # A person's name was set to the one a later email gave: the file, and every link to it, kept the old one.
+    edit(crm, HANS, "name: Hans Müller", "name: Hans Peter Müller")
+    assert rules(lint(crm)) == [
+        ("warning", "Hans Müller", "name not the file's",
+         "its name 'Hans Peter Müller' isn't its file's: rename_entity to its name renames the file and the links to "
+         "it; to the file's, it sets the name"),
+    ]  # fmt: skip
+
+
+def test_a_name_differing_from_its_file_s_only_where_files_must_is_fine(crm):
+    # Me.md keeps its file name whatever the owner is called; a second note of one name gets a number or what tells it
+    # apart; a name holds characters no file name may, or differs only in case.
+    edit(crm, HANS, "name: Hans Müller", "name: hans müller")
+    for path, kind, ref, name in [
+        ("01_People/Hans Müller (2).md", "person", "per_01M4WNN540CGMAHYXV1R90AB00", "Hans Müller"),
+        ("01_People/Hans Müller (Beta).md", "person", "per_01M4WNN540CGMAHYXV1R90AB02", "Hans Müller"),
+        ("02_Organizations/ACDC Ltd.md", "organization", "org_01M4WNN540CGMAHYXV1R90AB01", "AC/DC Ltd"),
+    ]:
+        crm.vault.path(path).write_text(f"---\ntype: {kind}\nid: {ref}\nname: {name}\n---\n", encoding="utf-8")
+    assert [i for i in rules(lint(crm)) if i[2] == "name not the file's"] == []
+
+
 def test_links_to_attachments_that_exist_are_fine(crm):
     edit(crm, HANS, "## Notes\n", "## Notes\n![[card.png]] and [[gone.pdf]]\n")
     (crm.vault.root / "01_People" / "Card.PNG").write_bytes(b"")
@@ -81,14 +104,20 @@ def test_finds_schema_problems_clashes_and_unreadable_notes(crm):
             "schema",
             "type: unknown type 'gadget'; one of person, organization, interaction, task, topic, review",
         ),
+        ("warning", "Hans Kopie", "name not the file's",
+         "its name 'Hans Müller' isn't its file's: rename_entity to its name renames the file and the links to it; to "
+         "the file's, it sets the name"),
         (
             "warning",
             "Loose",
             "no type",
             "in 02_Organizations, but not a note of orbit's: add `type: organization`, or move it",
         ),
+        ("warning", "Hans Moved", "name not the file's",
+         "its name 'Moved' isn't its file's: rename_entity to its name renames the file and the links to it; to the "
+         "file's, it sets the name"),
         ("warning", "Hans Moved", "wrong folder", "a person belongs in 01_People"),
-    ]
+    ]  # fmt: skip
 
 
 def test_fix_assigns_missing_ids_and_lowercases_addresses(crm):

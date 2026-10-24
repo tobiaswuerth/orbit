@@ -14,7 +14,7 @@ created: 2026-10-18
 ---
 ## Evidence for
 - The address hansi.mueller@gmail.com carries the surname Müller (as mueller), and Hansi is a nickname for Hans.
-- Both write to Tobias on first-name terms (du).
+- Both write to Max on first-name terms (du).
 
 ## Evidence against
 - A private address and a private topic. Nothing in the email mentions Acme AG.

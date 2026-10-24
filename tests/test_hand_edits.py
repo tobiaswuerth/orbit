@@ -15,7 +15,7 @@ from orbit.resolve import resolve
 from .conftest import EXAMPLE, NOW
 
 EMAIL = "[[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]]"
-CHAT = "Tobias in chat, 2026-10-22"
+CHAT = "Max in chat, 2026-10-22"
 HANS, TASK = "Hans Müller", "Send revised offer for Wartungsvertrag 2027"
 OFFER_ID = "<20261014093200.4711@acme-ag.example>"
 NOTES = {
