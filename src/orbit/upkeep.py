@@ -144,6 +144,7 @@ def merge(crm, keep, drop, source, overrule=False):
             note.body.append(heading, kept, schema.TYPES[k.type].sections)
         elif lines:
             note.body.append(heading, [f"From {d.name}, merged on {date}:", *lines], schema.TYPES[k.type].sections)
+    writes.drop_retracted(note, schema.TYPES[k.type].sections)  # what either had taken back stays out
     merged = Change(date, "merged", None, f"{d.name} ({d.id})", link).line()
     note.body.append("History", [merged], schema.TYPES[k.type].sections)
     changes = Changes()

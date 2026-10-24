@@ -319,7 +319,7 @@ def test_serve_over_http(example, home, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "on http://[::]:9000/mcp" in err
     assert "warning: listening on ::, so anyone who reaches port 9000 can read and change the CRM" in err
-    assert "/mcp/write: no merges, renames or lint; /mcp/read: reading only" in err
+    assert "/mcp/write: no upkeep (merges, renames, lint, retractions, …); /mcp/read: reading only" in err
 
 
 def test_serve_offers_the_tools_orbit_toml_or_the_command_allows(example, home, monkeypatch):

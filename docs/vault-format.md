@@ -95,14 +95,17 @@ as `Tobias in chat, 2026-10-22`.
 - 2026-11-20 · job_title: Leiter Einkauf → Head of Procurement · [[<source>]]
 - 2026-11-20 · location: Winterthur · [[<source>]]
 - 2026-10-14 · created: <why the note was created> · [[<source>]]
-- 2026-10-24 · retracted: <fact> ‹<the source's words>› [[<source>]] → <why it isn't so> · [[<source>]]
+- 2026-10-24 · retracted: 2026-10-14 · <fact> · «<the source's words>» · [[<source>]] · high → <why it isn't so> · <who took it back>
 ```
 
-Confidence is `high` (stated outright) or `medium` (clearly implied). History lines record single-value fields: set,
-changed, or cleared (`→ ""`), and items taken out of a list (`emails: old@acme.example → ""`). Their dates let orbit
-tell whether a new value is newer than the stored one. An observation taken back (`retract_observation`) leaves
-Observations for a `retracted:` line in History, with its evidence, its source and why. A person's `org` changed by another source than the one that
-set it moves the old one to `former_orgs`; changed by the same source, it is a correction and moves nothing.
+Confidence is `high` (stated outright) or `medium` (clearly implied). Text in these lines has no « », " · " or " → " of
+its own: they become ‹ ›, ", " and " -> ". History lines record single-value fields: set, changed, or cleared (`→
+""`), and items taken out of a list (`emails: old@acme.example → ""`). Their dates let orbit tell whether a new value
+is newer than the stored one. An observation taken back (`retract_observation`) leaves Observations for a `retracted:`
+line in History, which holds its line whole, why, and who took it back, dated like every history line by its source
+(today, for a source in words). It isn't recorded again from the same source or with the same words, and a merge
+doesn't bring it back from the other note. A person's `org` changed by another source than the one that set it moves
+the old one to `former_orgs`; changed by the same source, it is a correction and moves nothing.
 
 ## Tasks
 

@@ -607,8 +607,8 @@ def test_a_wrong_observation_is_retracted_and_kept_in_history(crm):
     observations, history = note.split("## History")
     assert "Has 200 staff" not in observations
     assert "- 2026-10-14 · Moved · «umgezogen»" in observations
-    line = (f"- {crm.today()} · retracted: Has 200 staff ‹rund 200 Mitarbeitende› {EMAIL} → Example AG's staff, not "
-            f"Acme's · {CHAT}")  # fmt: skip
+    line = (f"- {crm.today()} · retracted: 2026-10-14 · Has 200 staff · «rund 200 Mitarbeitende» · {EMAIL} · medium "
+            f"→ Example AG's staff, not Acme's · {CHAT}")  # fmt: skip
     assert line in history
     assert [o["statement"] for o in reads.context(crm, "Acme AG")["observations"]] == ["Moved"]
 
@@ -617,6 +617,37 @@ def test_every_copy_of_a_wrong_statement_is_retracted(crm):
     writes.add_observation(crm, "Acme AG", "Has 200 staff", "rund 200 Mitarbeitende", "medium", EMAIL)
     writes.add_observation(crm, "Acme AG", "Has 200 staff", "200 Leute", "high", CHAT)
     assert writes.retract_observation(crm, "Acme AG", "Has 200 staff", "it has 20", CHAT)["retracted"] == 2
+
+
+def test_retracting_again_changes_nothing(crm):
+    # A retry after a lost answer: as every write, it returns what the first did, not an error.
+    writes.add_observation(crm, "Acme AG", "Has 200 staff", "rund 200 Mitarbeitende", "medium", EMAIL)
+    writes.retract_observation(crm, "Acme AG", "Has 200 staff", "it has 20", CHAT)
+    again = writes.retract_observation(crm, "Acme AG", "Has 200 staff", "it has 20", CHAT)
+    assert (again["retracted"], again["changed"]) == (0, [])
+
+
+def test_a_fact_taken_back_is_not_recorded_again(crm):
+    # A review took a wrong fact back and had the email imported again, which recorded the fact again.
+    writes.add_observation(crm, "Acme AG", "Has 200 staff", "rund 200 Mitarbeitende", "medium", EMAIL)
+    writes.retract_observation(crm, "Acme AG", "Has 200 staff", "Example AG's staff, not Acme's", CHAT)
+    for statement, evidence, source in (("Has 200 staff", "200", EMAIL), ("Is big", "rund 200 Mitarbeitende", CHAT)):
+        with pytest.raises(OrbitError) as error:
+            writes.add_observation(crm, "Acme AG", statement, evidence, "high", source)
+        assert str(error.value) == (
+            f"statement: Acme AG had this taken back on {crm.today()}: Example AG's staff, not Acme's. Leave it out, "
+            "unless the source shows otherwise in other words"
+        )
+    assert writes.add_observation(crm, "Acme AG", "Has 200 staff", "200 Leute", "high", CHAT)["existing"] is False
+
+
+def test_a_retracted_line_edited_out_of_shape_holds_nothing_back(crm):
+    path = crm.vault.path("02_Organizations/Acme AG.md")
+    page = path.read_text(encoding="utf-8")
+    path.write_text(page.replace("## History\n", f"## History\n- 2026-10-20 · retracted: Has 200 staff → x · {CHAT}\n"),
+                    encoding="utf-8")  # fmt: skip
+    crm.refresh()
+    assert writes.add_observation(crm, "Acme AG", "Has 200 staff", "200", "high", CHAT)["existing"] is False
 
 
 def test_retracting_what_no_observation_says_names_those_there_are(crm):

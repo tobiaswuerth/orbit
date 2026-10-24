@@ -4,7 +4,7 @@ absolute paths of the notes it created or changed."""
 
 from . import console, edits, evidence, ids, names, reads, resolve, schema
 from .edits import Changes
-from .entries import CONFIDENCE, Change, Observation, text
+from .entries import ARROW, CONFIDENCE, Change, Observation, text
 from .errors import OrbitError
 from .schema import INTERACTION, ORGANIZATION, PERSON, TASK, TOPIC
 from .sections import text_lines
@@ -18,6 +18,7 @@ RELATIONS = {
 }
 CONTACTED = ("from", "to", "cc", "participants")  # the people an interaction counts as contact with; not `mentioned`
 OPEN_TASKS = 50  # of those whom an interaction is with, the most log_interaction lists; it counts the rest
+RETRACTED = "retracted"  # the History line of an observation taken back: "retracted: <its line> → why"
 MANAGED = {
     "last_contact": "log_interaction sets it",
     "distinct_from": "answered reviews set it",
@@ -369,6 +370,11 @@ def add_observation(crm, entity, statement, evidence, confidence, source, observ
     known = [o for o in map(Observation.parse, note.body.lines("Observations") or []) if o]
     if any(_same_fact(o, observation) for o in known):
         return _result(_entity(crm, found), [], existing=True)
+    if taken := next((r for r in retracted(note) if _same_fact(r[0], observation)), None):
+        raise OrbitError(
+            f"statement: {found.name} had this taken back on {taken[1]}: {taken[2]}. Leave it out, unless the source "
+            "shows otherwise in other words"
+        )
     note.body.append("Observations", [observation.line()], schema.TYPES[found.type].sections)
     return _result(_entity(crm, found), [crm.save(note)], existing=False)
 
@@ -398,6 +404,8 @@ def retract_observation(crm, entity, statement, why, source):
     note, said = crm.load(found.path), text(statement)
     lines = note.body.lines("Observations") or []
     wrong = [o for o in map(Observation.parse, lines) if o and o.statement == said]
+    if not wrong and any(o.statement == said for o, _, _ in retracted(note)):  # taken back already: a retry
+        return _result(_entity(crm, found), [], retracted=0)
     if not wrong:
         known = [repr(o.statement) for o in map(Observation.parse, lines) if o]
         listed = (
@@ -407,11 +415,29 @@ def retract_observation(crm, entity, statement, why, source):
     kept = [x for x in lines if (o := Observation.parse(x)) is None or o.statement != said]
     sections = schema.TYPES[found.type].sections
     note.body.replace("Observations", kept, sections)
-    history = [
-        Change(date, "retracted", f"{o.statement} ‹{o.evidence}› {o.source}", text(why), link).line() for o in wrong
-    ]
+    history = [Change(date, RETRACTED, o.line().removeprefix("- "), text(why), link).line() for o in wrong]
     note.body.append("History", history, sections)
     return _result(_entity(crm, found), [crm.save(note)], retracted=len(wrong))
+
+
+def retracted(note):
+    """The observations taken back from a note, as its History keeps them: [(observation, when, why)]."""
+    found = []
+    for change in map(Change.parse, note.body.lines("History") or []):
+        if change and change.field == RETRACTED and change.old is not None:
+            line, _, why = f"{change.old}{ARROW}{change.new or ''}".rpartition(ARROW)  # its why has no arrow
+            if observation := Observation.parse(f"- {line}"):
+                found.append((observation, change.date, why))
+    return found
+
+
+def drop_retracted(note, sections):
+    """Take out of a note's Observations those its History says were taken back, as a merge may bring them."""
+    taken = [o for o, _, _ in retracted(note)]
+    lines = note.body.lines("Observations") or []
+    kept = [x for x in lines if not ((o := Observation.parse(x)) and any(_same_fact(t, o) for t in taken))]
+    if len(kept) < len(lines):
+        note.body.replace("Observations", kept, sections)
 
 
 def set_fields(crm, entity, changes, source, observed_at, evidence=None, remove=None):

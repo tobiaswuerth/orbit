@@ -25,6 +25,12 @@ def test_observation_text_keeps_to_one_line_without_separators():
     assert Observation.parse(observation.line()).statement == "Said ‹no›, twice loudly"
 
 
+def test_observation_text_holds_no_arrow_that_a_history_line_would_split_at():
+    # An observation taken back goes into History as "the observation → why": its own arrow would split it there.
+    observation = Observation("2026-10-14", "Moves A → B", "von A → nach B", SOURCE, "high")
+    assert observation.line() == f"- 2026-10-14 · Moves A -> B · «von A -> nach B» · {SOURCE} · high"
+
+
 @pytest.mark.parametrize(
     "change, line",
     [

@@ -747,7 +747,7 @@ async def _serve(crm, host, port, stdio, tools):
             else:
                 address = f"http://[{host}]:{port}/mcp" if ":" in host else f"http://{host}:{port}/mcp"
                 console.say(f"orbit MCP server on {address}")
-                console.say("  /mcp/write: no merges, renames or lint; /mcp/read: reading only")
+                console.say("  /mcp/write: no upkeep (merges, renames, lint, retractions, …); /mcp/read: reading only")
                 if host not in LOCAL_HOSTS:
                     console.say(
                         f"warning: listening on {host}, so anyone who reaches port {port} can read and change the "
