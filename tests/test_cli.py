@@ -27,7 +27,7 @@ def test_unknown_arguments_fail(capsys):
 
 
 def test_init_creates_a_vault(tmp_path, capsys):
-    code, out, err = run(capsys, "init", tmp_path / "crm", "--name", "Tobias", "--email", "tobias@meinefirma.example")
+    code, out, err = run(capsys, "init", tmp_path / "crm", "--name", "Max", "--email", "max@meinefirma.example")
     assert code == 0
     assert out.splitlines()[0] == "created 01_People/"
     assert "created 01_People/Me.md" in out
@@ -39,7 +39,7 @@ def test_init_creates_a_vault(tmp_path, capsys):
 
 def test_init_without_an_address_says_to_add_one(tmp_path, capsys):
     # Without one, orbit takes the owner's own address for someone it doesn't know, in every mail.
-    code, _, err = run(capsys, "init", tmp_path / "crm", "--name", "Tobias")
+    code, _, err = run(capsys, "init", tmp_path / "crm", "--name", "Max")
     assert code == 0
     assert err == (
         "01_People/Me.md has no email address, so orbit can't tell mail from and to you: add yours to its emails\n"
@@ -47,8 +47,8 @@ def test_init_without_an_address_says_to_add_one(tmp_path, capsys):
 
 
 def test_init_of_a_vault_with_a_me_says_its_name_and_addresses_stay(tmp_path, capsys):
-    run(capsys, "init", tmp_path / "crm", "--email", "tobias@meinefirma.example")
-    code, out, err = run(capsys, "init", tmp_path / "crm", "--name", "Tobias", "--email", "tobias@privat.example")
+    run(capsys, "init", tmp_path / "crm", "--email", "max@meinefirma.example")
+    code, out, err = run(capsys, "init", tmp_path / "crm", "--name", "Max", "--email", "max@privat.example")
     assert (code, out) == (0, "")
     assert "01_People/Me.md exists already, so --name and --email changed nothing: edit it instead" in err
 

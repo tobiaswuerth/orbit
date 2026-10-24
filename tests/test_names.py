@@ -116,7 +116,7 @@ def test_role_addresses():
     assert not names.is_role_address("hans@acme.example", roles)
 
 
-@pytest.mark.parametrize("address", ["anna.office@acme.example", "john.sales@acme.example", "max.hr@acme.example"])
+@pytest.mark.parametrize("address", ["anna.office@acme.example", "max.sales@acme.example", "max.hr@acme.example"])
 def test_a_person_s_address_with_a_role_word_in_it_stays_theirs(address):
     # A team's acme-support@ can't be told from a person's anna.office@ by its words: only a whole role is a mailbox.
     assert not names.is_role_address(address, set(config.ROLE_ADDRESSES))

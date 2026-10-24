@@ -6,7 +6,7 @@ from orbit import reads, upkeep, writes
 from orbit.errors import OrbitError
 from orbit.lint import lint
 
-CHAT = "Tobias in chat, 2026-10-22"
+CHAT = "Max in chat, 2026-10-22"
 EMAIL = "2026-10-14 Email – AW Offerte Wartungsvertrag 2027"
 SAILING = "2026-10-18 Email – Segelwochenende Bodensee"
 REVIEW = "2026-10-18 Duplicate – Hans and Hans Müller"
@@ -341,7 +341,7 @@ def test_a_link_by_domain_is_as_old_as_the_last_contact(crm):
 
 def test_me_keeps_its_name(crm):
     with pytest.raises(OrbitError, match=r"Me.md keeps its name: notes link to the owner as \[\[Me\]\]"):
-        upkeep.rename(crm, "Me", "Tobias", CHAT)
+        upkeep.rename(crm, "Me", "Max", CHAT)
 
 
 def test_fields_other_than_text_are_left_as_they_are(crm):

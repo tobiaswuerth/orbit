@@ -51,7 +51,7 @@ Or run it without installing, `uvx orbit-crm serve ~/crm`, or install it with pi
 Create a vault, with your own note, `Me.md`, and your addresses, so that agents never take you for a contact:
 
 ```bash
-orbit init ~/crm --name "Tobias" --email tobias@example.com
+orbit init ~/crm --name "Max" --email max@example.com
 ```
 
 Open the folder as a vault in Obsidian. `orbit init` also writes three [Bases](https://obsidian.md/help/bases) views to

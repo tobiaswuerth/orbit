@@ -170,7 +170,7 @@ def test_each_endpoint_offers_what_its_url_says_within_what_the_vault_allows(crm
 
 def test_instructions_state_the_rules_and_the_vault(crm, mcp):
     text = mcp.instructions
-    assert text.startswith("orbit keeps the personal CRM of Tobias, the vault's owner")
+    assert text.startswith("orbit keeps the personal CRM of Max, the vault's owner")
     assert "Resolve before you write" in text
     assert "Write only what a source states" in text
     assert f"The vault at {crm.vault.root} holds 4 person, 1 organization, 2 interaction" in text
@@ -201,7 +201,7 @@ def test_read_tools(mcp):
 
 
 def test_write_tools(mcp, crm):
-    chat = "Tobias in chat, 2026-10-22"
+    chat = "Max in chat, 2026-10-22"
     assert data(
         call(
             mcp,
@@ -254,7 +254,7 @@ def test_several_links_and_addresses_through_mcp(mcp):
         {"relation": "to", "to": "anna.keller@acme-ag.example"},
         {"relation": "topics", "to": "Wartungsvertrag 2027"},
     ]
-    arguments = {"entity": "2026-10-18 Email – Segelwochenende Bodensee", "source": "Tobias in chat", "links": links}
+    arguments = {"entity": "2026-10-18 Email – Segelwochenende Bodensee", "source": "Max in chat", "links": links}
     result = data(call(mcp, "link_entities", arguments))
     assert [(link["to"], link["linked"]) for link in result["links"]] == [
         ("[[Anna Keller]]", True),

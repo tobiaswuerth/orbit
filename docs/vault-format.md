@@ -89,7 +89,7 @@ Windows credentials. A relative path stays as it is: orbit can't tell what it is
 | review | `## Evidence for`, `## Evidence against`, `## How to answer`; once an answer is acted on, `## Applied` (what was done with it) |
 
 Observations and history lines carry their date and their source: an interaction's link, or a short description such
-as `Tobias in chat, 2026-10-22`.
+as `Max in chat, 2026-10-22`.
 
 ```
 - 2026-10-14 · <fact> · «<the source's words>» · [[<source>]] · high

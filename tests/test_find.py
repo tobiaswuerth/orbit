@@ -6,7 +6,7 @@ import pytest
 from orbit import reads, writes
 from orbit.errors import OrbitError
 
-CHAT = "Tobias in chat, 2026-10-22"
+CHAT = "Max in chat, 2026-10-22"
 SAILING = "2026-10-18 Email – Segelwochenende Bodensee"
 
 
@@ -15,8 +15,8 @@ def fields(crm, ref):
 
 
 def test_the_owner_is_found_by_their_name(crm):
-    # Agents named the owner "Tobias Würth", whose note is Me.md.
-    writes.link_entities(crm, SAILING, "mentioned", "Tobias", CHAT)
+    # Agents named the owner "Max Doe", whose note is Me.md.
+    writes.link_entities(crm, SAILING, "mentioned", "Max", CHAT)
     assert "[[Me]]" in fields(crm, SAILING)["mentioned"]
 
 

@@ -70,7 +70,7 @@ def test_a_review_whose_candidate_is_gone_is_left_alone(crm):
 
 def test_reviews_of_other_kinds_are_answers_only(crm, example):
     result = reviews.propose(
-        crm, "job_change", "Has Anna Keller left Acme AG?", ["Anna Keller"], ["Her mail bounced"], [], "Tobias in chat"
+        crm, "job_change", "Has Anna Keller left Acme AG?", ["Anna Keller"], ["Her mail bounced"], [], "Max in chat"
     )
     assert result["name"] == "2026-10-22 Job change – Anna Keller"
     path = f"90_Review/{result['name']}.md"
@@ -95,7 +95,7 @@ def test_what_the_owner_answered_is_not_asked_again(crm):
     # The owner answered, and a later agent asked them the same again: they changed the decision themselves if they
     # wanted it changed, so the answer stands, and the agent learns it.
     decide(crm, "different")
-    again = reviews.propose(crm, "duplicate", "Same after all?", ["Hans Müller", "Hans"], [], [], "Tobias in chat")
+    again = reviews.propose(crm, "duplicate", "Same after all?", ["Hans Müller", "Hans"], [], [], "Max in chat")
     assert (again["name"], again["existing"], again["decision"]) == (
         "2026-10-18 Duplicate – Hans and Hans Müller", True, "different")  # fmt: skip
     path = ask_open(crm)
@@ -165,7 +165,7 @@ def test_a_yes_or_no_question_has_boxes_to_tick(crm):
     assert "answer:" not in text.replace("answer_yes", "").replace("answer_no", "")
     assert "Tick Yes or No in the Review base" in text
     tick(crm, path, "answer_yes")
-    assert "tobias@alt.example" in fields(crm, "Me")["emails"]
+    assert "max@alt.example" in fields(crm, "Me")["emails"]
     assert fields(crm, path.removeprefix("90_Review/").removesuffix(".md"))["decision"] == "yes"
 
 
@@ -331,9 +331,9 @@ def test_an_answer_left_empty_is_no_answer(crm):
     assert fields(crm, path.removeprefix("90_Review/").removesuffix(".md"))["decision"] == "pending"
 
 
-def ask_address(crm, address="tobias@alt.example", who="Me"):
+def ask_address(crm, address="max@alt.example", who="Me"):
     question = f"Is {address} an address of {who}?"
-    result = reviews.propose(crm, "address", question, [who], ["signs as Tobias"], [], SAILING, address=address)
+    result = reviews.propose(crm, "address", question, [who], ["signs as Max"], [], SAILING, address=address)
     return f"90_Review/{result['name']}.md"
 
 
@@ -341,15 +341,15 @@ def test_an_address_answered_yes_is_added_once(crm):
     # Agents asked whether an address was the owner's; the answer yes did nothing, and they asked again.
     path = ask_address(crm)
     assert ask_address(crm) == path  # asked again while pending: the same review
-    assert "orbit then adds tobias@alt.example to the emails of [[Me]]" in crm.vault.path(path).read_text("utf-8")
+    assert "orbit then adds max@alt.example to the emails of [[Me]]" in crm.vault.path(path).read_text("utf-8")
     decide(crm, "yes", path)
-    assert "tobias@alt.example" in fields(crm, "Me")["emails"]
+    assert "max@alt.example" in fields(crm, "Me")["emails"]
     assert fields(crm, path.removeprefix("90_Review/").removesuffix(".md"))["applied"] == "2026-10-22"
 
 
 def test_an_address_answered_no_is_left_out(crm):
     decide(crm, "no", ask_address(crm))
-    assert "tobias@alt.example" not in fields(crm, "Me")["emails"]
+    assert "max@alt.example" not in fields(crm, "Me")["emails"]
 
 
 def test_an_address_someone_else_has_is_reported(crm):
@@ -386,7 +386,7 @@ def test_an_address_of_someone_answered_different_says_so(crm):
         (["Me"], None, "address: the address the question is about"),
         (["Me", "Anna Keller"], "x@y.example", "an address review asks about one person"),
         (["Acme AG"], "x@y.example", "an address review asks about one person"),
-        (["Me"], "tobias@meinefirma.example", "tobias@meinefirma.example is one of \\[\\[Me\\]\\]'s already"),
+        (["Me"], "max@meinefirma.example", "max@meinefirma.example is one of \\[\\[Me\\]\\]'s already"),
         (["Me"], "info@acme-ag.example", "info@acme-ag.example is a role address"),
     ],
 )
