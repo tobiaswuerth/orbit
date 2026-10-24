@@ -70,8 +70,8 @@ def lint(crm, fix=False):
                 "warning",
                 path,
                 "name not the file's",
-                f"its name {fields['name']!r} isn't its file's: rename_entity renames the file and the links to it, "
-                "or set the name back",
+                f"its name {fields['name']!r} isn't its file's: rename_entity to its name renames the file and the "
+                "links to it; to the file's, it sets the name",
             )
         if path in crm.review_problems:
             issue("warning", path, "not applied", crm.review_problems[path])

@@ -217,7 +217,7 @@ tools' schemas, for the agents that read them.
 | `server.host`, `server.port` | `127.0.0.1`, `8775` | Where `orbit serve` listens. It warns when told to listen beyond this machine. |
 | `server.tools` | all | The tool groups (`read`, `write`, `upkeep`) or tools that `/mcp` offers; `/mcp/write` and `/mcp/read` offer less. |
 | `identity.free_mail_domains` | gmail.com, outlook.com, gmx.ch, bluewin.ch, … | Domains that say nothing about an employer. |
-| `identity.role_addresses` | info, noreply, team, sales, support, hr, service, … | Mailboxes that never belong to a person, also as a word of an address (acme-support@, office-zurich@). A vault made before keeps its list: add the new ones to it. |
+| `identity.role_addresses` | info, noreply, team, sales, support, hr, service, … | Mailboxes that never belong to a person, by the whole local part. A vault made before keeps its list: add new ones to it. |
 
 `99_System/nicknames.txt` lists first names that stand for one another, one group per line: `Hans = Hansi =
 Hansruedi`. The one environment variable, `ORBIT_HOME` (default `~/.orbit/`), says where the indexes live: outside

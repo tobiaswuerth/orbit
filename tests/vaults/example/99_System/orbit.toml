@@ -13,7 +13,7 @@ free_mail_domains = [
   "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "icloud.com", "me.com",
   "yahoo.com", "proton.me", "protonmail.com", "gmx.ch", "gmx.net", "bluewin.ch", "sunrise.ch",
 ]
-# Local parts of addresses, or words of them (acme-support@), that belong to a role or a mailbox, never to a person.
+# Local parts of addresses that belong to a role or a mailbox, never to a person.
 role_addresses = [
   "info", "noreply", "no-reply", "donotreply", "team", "sales", "support", "office", "hello", "contact",
   "admin", "newsletter", "hr", "service",

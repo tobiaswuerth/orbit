@@ -301,13 +301,13 @@ def test_an_answer_acted_on_is_settled_once_with_what_was_done(crm):
     path = ask_open(crm)
     name = path.removeprefix("90_Review/").removesuffix(".md")
     with pytest.raises(OrbitError, match="not answered yet"):
-        reviews.settle(crm, name, "Recorded the account on Me", "glean review, 2026-10-23")
+        reviews.settle(crm, name, "Recorded the account on Me", "a review, 2026-10-23")
     answer(crm, path, "yes")
-    result = reviews.settle(crm, name, "Recorded the account on Me", "glean review, 2026-10-23")
+    result = reviews.settle(crm, name, "Recorded the account on Me", "a review, 2026-10-23")
     assert (result["existing"], fields(crm, name)["applied"]) == (False, "2026-10-22")
     text = crm.vault.path(path).read_text(encoding="utf-8")
-    assert text.endswith("## Applied\n- 2026-10-22 · Recorded the account on Me · glean review, 2026-10-23\n")
-    again = reviews.settle(crm, name, "Recorded it again", "glean review, 2026-10-24")
+    assert text.endswith("## Applied\n- 2026-10-22 · Recorded the account on Me · a review, 2026-10-23\n")
+    again = reviews.settle(crm, name, "Recorded it again", "a review, 2026-10-24")
     assert (again["existing"], again["changed"]) == (True, [])  # settled already: nothing done twice
     with pytest.raises(OrbitError, match="done: what was done with the answer"):
         reviews.settle(crm, name, " ", "x")

@@ -37,8 +37,8 @@ def test_a_name_that_isnt_its_file_s_is_named(crm):
     edit(crm, HANS, "name: Hans Müller", "name: Hans Peter Müller")
     assert rules(lint(crm)) == [
         ("warning", "Hans Müller", "name not the file's",
-         "its name 'Hans Peter Müller' isn't its file's: rename_entity renames the file and the links to it, or set "
-         "the name back"),
+         "its name 'Hans Peter Müller' isn't its file's: rename_entity to its name renames the file and the links to "
+         "it; to the file's, it sets the name"),
     ]  # fmt: skip
 
 
@@ -105,8 +105,8 @@ def test_finds_schema_problems_clashes_and_unreadable_notes(crm):
             "type: unknown type 'gadget'; one of person, organization, interaction, task, topic, review",
         ),
         ("warning", "Hans Kopie", "name not the file's",
-         "its name 'Hans Müller' isn't its file's: rename_entity renames the file and the links to it, or set the name "
-         "back"),
+         "its name 'Hans Müller' isn't its file's: rename_entity to its name renames the file and the links to it; to "
+         "the file's, it sets the name"),
         (
             "warning",
             "Loose",
@@ -114,7 +114,8 @@ def test_finds_schema_problems_clashes_and_unreadable_notes(crm):
             "in 02_Organizations, but not a note of orbit's: add `type: organization`, or move it",
         ),
         ("warning", "Hans Moved", "name not the file's",
-         "its name 'Moved' isn't its file's: rename_entity renames the file and the links to it, or set the name back"),
+         "its name 'Moved' isn't its file's: rename_entity to its name renames the file and the links to it; to the "
+         "file's, it sets the name"),
         ("warning", "Hans Moved", "wrong folder", "a person belongs in 01_People"),
     ]  # fmt: skip
 

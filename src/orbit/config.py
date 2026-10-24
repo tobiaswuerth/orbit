@@ -34,7 +34,7 @@ port = {port}
 free_mail_domains = [
 {free_mail}
 ]
-# Local parts of addresses, or words of them (acme-support@), that belong to a role or a mailbox, never to a person.
+# Local parts of addresses that belong to a role or a mailbox, never to a person.
 role_addresses = [
 {roles}
 ]

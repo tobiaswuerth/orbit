@@ -161,6 +161,22 @@ def test_differing_values_are_kept_and_go_to_review(crm):
     assert review["sections"]["Evidence against"] == "- location: Hans had Romanshorn"
 
 
+def test_renaming_a_note_to_its_file_s_name_sets_its_name(crm):
+    # Renamed in Obsidian, which rewrites the links but not `name:`: lint named it, and no tool could set it.
+    edit(crm, "01_People/Hans.md", "name: Hans", "name: Hans Brand")
+    crm.refresh()
+    result = upkeep.rename(crm, "Hans", "Hans", CHAT)
+    assert (result["name"], len(result["changed"])) == ("Hans", 1)
+    found = fields(crm, "Hans")
+    assert (found["name"], found["aliases"][-1]) == ("Hans", "Hans Brand")
+    assert [i for i in lint(crm)["issues"] if i["rule"] == "name not the file's"] == []
+    assert upkeep.rename(crm, "Hans", "Hans", CHAT)["changed"] == []  # in line: nothing to do
+    edit(crm, "01_People/Anna Keller.md", "name: Anna Keller\n", "")  # a note made by hand, without one
+    crm.refresh()
+    upkeep.rename(crm, "Anna Keller", "Anna Keller", CHAT)
+    assert (fields(crm, "Anna Keller")["name"], fields(crm, "Anna Keller").get("aliases")) == ("Anna Keller", None)
+
+
 def test_a_merge_brings_back_no_fact_either_note_had_taken_back(crm):
     # The duplicate still held a fact taken back from the note it was merged into.
     for name in ("Hans", "Hans Müller"):

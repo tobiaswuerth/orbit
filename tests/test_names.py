@@ -110,27 +110,16 @@ def test_an_address_bare_or_as_a_header_writes_it(text, address):
 
 
 def test_role_addresses():
-    roles = {"info", "noreply", "support", "office", "service"}
+    roles = {"info", "noreply"}
     assert names.is_role_address("info@acme.example", roles)
     assert names.is_role_address("Info+news@acme.example", roles)
     assert not names.is_role_address("hans@acme.example", roles)
 
 
-@pytest.mark.parametrize(
-    "address, role",
-    [
-        ("acme-support@acme.example", True),  # a team's mailbox, which one person signed
-        ("office-zurich@acme.example", True),
-        ("customer.service@acme.example", True),
-        ("support_de@acme.example", True),
-        ("supporter@acme.example", False),  # a word of its own
-        ("hans.mueller@acme.example", False),
-        ("officer.hans@acme.example", False),
-    ],
-)
-def test_a_role_word_in_an_address_makes_it_a_mailbox(address, role):
-    # A support desk's and an office's addresses landed on the people who signed from them.
-    assert names.is_role_address(address, {"support", "office", "service"}) is role
+@pytest.mark.parametrize("address", ["anna.office@acme.example", "john.sales@acme.example", "max.hr@acme.example"])
+def test_a_person_s_address_with_a_role_word_in_it_stays_theirs(address):
+    # A team's acme-support@ can't be told from a person's anna.office@ by its words: only a whole role is a mailbox.
+    assert not names.is_role_address(address, set(config.ROLE_ADDRESSES))
 
 
 def test_hr_and_service_mailboxes_are_roles_by_default():

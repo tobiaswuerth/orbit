@@ -674,6 +674,13 @@ def test_retract_observation_refuses(crm, entity, statement, why, message):
         writes.retract_observation(crm, entity, statement, why, CHAT)
 
 
+def test_set_fields_takes_a_name_as_it_is(crm):
+    # A caller that hands back the whole record, its name unchanged, isn't refused for it.
+    result = writes.set_fields(crm, "Hans Müller", {"name": "Hans Müller", "location": "Zug"}, CHAT, "2026-11-20")
+    assert fields(crm, "Hans Müller")["location"] == "Zug"
+    assert result["name"] == "Hans Müller"
+
+
 def test_set_fields_writes_a_history_line_dated_when_observed(crm):
     result = writes.set_fields(
         crm, "Hans Müller", {"job_title": "Head of Procurement", "location": "Zürich"}, "Tobias in chat", "2026-11-20"

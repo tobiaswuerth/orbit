@@ -8,16 +8,17 @@ and versions follow [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `lint_vault` names a note whose name isn't its file's, which links name (a name set by hand or by an older orbit's
-  `set_fields`): rename the note with `rename_entity`, or set the name back. A number or what tells two notes of one
-  name apart, in brackets, Me.md, and characters no file name may hold are fine.
+  `set_fields`, or a file renamed in Obsidian): `rename_entity` to the name renames the file and the links to it;
+  `rename_entity` to the file's name sets the name to it, the old one kept in `aliases`. A number or what tells two
+  notes of one name apart, in brackets, Me.md, and characters no file name may hold are fine.
 
 ### Changed
 
-- A role word as a word of an address makes it a mailbox too: `acme-support@`, `office-zurich@` and
-  `customer.service@` never go on a person, as `support@` didn't. `hr` and `service` join the default roles; a vault
-  made before keeps its `identity.role_addresses`, to which they can be added.
-- `set_fields` refuses a new `name`: it changed the name but neither the file nor the links to it. `rename_entity`
-  renames a note; `upsert_*` records another name in `aliases`.
+- `hr` and `service` join the default role addresses, which never go on a person; a vault made before keeps its
+  `identity.role_addresses`, to which they can be added.
+- `set_fields` refuses a new `name`, and takes one as it is: it changed the name but neither the file nor the links
+  to it. `rename_entity` renames a note; `upsert_*` records another name in `aliases`.
+- `rename_entity` to the note's file name sets its `name` to it: it did nothing, as the file had the name.
 
 ## [0.10.0] - 2026-10-24
 
