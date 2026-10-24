@@ -225,6 +225,15 @@ def test_close_tasks_dates_a_task_by_the_interaction_it_came_from(example, capsy
     assert "no open or waiting tasks from before 2026-10-14" in err
 
 
+def test_close_tasks_dates_a_task_from_no_interaction_by_when_it_was_made(example, capsys):
+    task = example / OPEN_TASK
+    text = task.read_text(encoding="utf-8")
+    origin = 'origin: "[[2026-10-14 Email – AW Offerte Wartungsvertrag 2027]]"\n'
+    task.write_text(text.replace(origin, "").replace("created: 2026-10-14", "created: 2026-10-20"), encoding="utf-8")
+    code, out, _ = run(capsys, "close-tasks", example, "--before", "2026-10-15", "--dry-run")
+    assert (code, out.splitlines()) == (0, [f"would cancel: {TASKS[0]}"])
+
+
 def test_close_tasks_ticks_the_boxes_for_the_server_that_holds_the_vault(example, home, capsys):
     with Crm(example, home) as crm:  # holds the vault, as orbit serve does
         crm.refresh()
