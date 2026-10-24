@@ -5,6 +5,10 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-24
+
+A Cancel box on tasks, and a command to cancel old ones at once.
+
 ### Added
 
 - Tasks have a Cancel box: an open or waiting task has `cancel: false`, which the Follow-ups base shows; ticked, orbit
