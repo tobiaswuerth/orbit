@@ -5,6 +5,8 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-25
+
 ### Added
 
 - `lint_vault` names a note whose name isn't its file's, which links name (a name set by hand or by an older orbit's
