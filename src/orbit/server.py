@@ -517,7 +517,8 @@ def build(crm, tools=None):
         field's last one (its `observed_at` before that change's date) isn't applied: a new value becomes an
         observation, a clearing is dropped, and `not_applied` says so. Lists grow with upsert_* and link_entities;
         `remove` takes items out of them, also with a history line (`removed` lists what came out). A person's org
-        that the same source set before is corrected, not moved to former_orgs."""
+        that the same source set before is corrected, not moved to former_orgs. A note's name is its file's:
+        rename_entity changes it, and upsert_* adds another to aliases."""
         return _run(writes.set_fields, crm, entity, changes, source, observed_at, evidence, remove)
 
     @mcp.tool(annotations=WRITE)
@@ -633,7 +634,8 @@ def build(crm, tools=None):
     ) -> dict:
         """Rename a note: its file, and every link to it, wherever it is, except in notes that can't be read
         (`links_left`, with the reason). A person's, organization's or topic's `name` changes with it, with a history
-        line, and the old name joins `aliases`. Refused if another note has the name."""
+        line, and the old name joins `aliases`. Refused if another note has the name. Renamed to its file's name (as
+        after a rename in Obsidian), only its `name` changes."""
         return _run(upkeep.rename, crm, id_or_name, new_name, source)
 
     @mcp.tool(annotations=WRITE)
@@ -665,8 +667,9 @@ def build(crm, tools=None):
         ] = False,
     ) -> dict:
         """Check the whole vault: schema conformance, missing or duplicate ids, the same email address on two people,
-        clashing file names, links to notes that don't exist, unknown fields, and notes edited by hand that broke a
-        rule. Issues are errors or warnings, each with the note, its path and what to do."""
+        clashing file names, names that aren't their file's, links to notes that don't exist, unknown fields, and notes
+        edited by hand that broke a rule. Issues are errors or warnings, each with the note, its path and what to
+        do."""
         return _run(lint.lint, crm, fix)
 
     @mcp.tool(annotations=DELETE)

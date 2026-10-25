@@ -37,7 +37,7 @@ def test_defaults_for_what_a_file_leaves_out(tmp_path):
     "text, message",
     [
         ("me = [", "orbit.toml: "),
-        ('me = "Tobias"', "me must be the id of Me.md"),
+        ('me = "Max"', "me must be the id of Me.md"),
         ('server = "x"', r"server must be a table, \[server\]"),
         ("[server]\nport = 0", "server.port must be a port number"),
         ("[server]\nport = true", "server.port must be a port number"),

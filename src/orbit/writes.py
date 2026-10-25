@@ -453,6 +453,11 @@ def set_fields(crm, entity, changes, source, observed_at, evidence=None, remove=
         field = spec.field(name)
         if field and field.many:
             raise OrbitError(f"{name} is a list: add to it with upsert_{found.type}, or link with link_entities")
+    if changes.get("name") not in (None, "", found.fields.get("name")):  # clearing it is refused below
+        raise OrbitError(
+            "name: a note's name is its file's, which links name: rename_entity renames both; to record another name, "
+            f"add it to aliases with upsert_{found.type}"
+        )
     cleared = [k for k, v in changes.items() if v in (None, "")]
     cleaned = _fields(crm, found.type, changes)  # every field is checked, those to clear too
     if required := [k for k in cleared if k in spec.required]:

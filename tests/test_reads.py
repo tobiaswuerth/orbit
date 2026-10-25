@@ -19,8 +19,8 @@ def test_context_of_a_person(crm, example):
     assert [o["confidence"] for o in found["observations"]] == ["high", "medium"]
     assert found["observations"][0] == {
         "date": "2026-10-14",
-        "statement": "On first-name terms with Tobias (du)",
-        "evidence": "Lieber Tobias",
+        "statement": "On first-name terms with Max (du)",
+        "evidence": "Lieber Max",
         "source": f"[[{EMAIL}]]",
         "confidence": "high",
     }
@@ -218,7 +218,7 @@ def test_list_by_links_in_any_spelling(crm):
     assert names(found) == ["2026-10-14 Email – AW Offerte Wartungsvertrag 2027"]
 
 
-def test_list_by_a_field_tobias_added(crm):
+def test_list_by_a_field_max_added(crm):
     hans = crm.vault.path("01_People/Hans.md")
     hans.write_text(hans.read_text(encoding="utf-8").replace("context:", "boat: Lacustre\ncontext:"), encoding="utf-8")
     crm.refresh()

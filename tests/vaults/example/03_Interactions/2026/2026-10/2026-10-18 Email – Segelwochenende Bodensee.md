@@ -15,7 +15,7 @@ sha256: e26c3227854f387aa64071c79afc02fc72b779c7613d5526ec57744d80688fd1
 created: 2026-10-18
 ---
 ## Summary
-Hans asks whether Tobias has time to go sailing on Lake Constance on 7 November, starting in Romanshorn.
+Hans asks whether Max has time to go sailing on Lake Constance on 7 November, starting in Romanshorn.
 
 ## Key quote
 > Hast du am 7. November Zeit fürs Segeln auf dem Bodensee?

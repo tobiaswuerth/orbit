@@ -14,7 +14,7 @@ FREE_MAIL_LINES = (
 )
 ROLE_LINES = (
     ("info", "noreply", "no-reply", "donotreply", "team", "sales", "support", "office", "hello", "contact"),
-    ("admin", "newsletter"),
+    ("admin", "newsletter", "hr", "service"),
 )
 FREE_MAIL_DOMAINS = tuple(d for line in FREE_MAIL_LINES for d in line)
 ROLE_ADDRESSES = tuple(r for line in ROLE_LINES for r in line)

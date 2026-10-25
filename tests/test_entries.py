@@ -20,8 +20,8 @@ def test_observations_read_back():
 
 
 def test_observation_text_keeps_to_one_line_without_separators():
-    observation = Observation("2026-10-14", "Said «no» · twice\nloudly", "«Nein» · «nein»", "Tobias in chat", "high")
-    assert observation.line() == "- 2026-10-14 · Said ‹no›, twice loudly · «‹Nein›, ‹nein›» · Tobias in chat · high"
+    observation = Observation("2026-10-14", "Said «no» · twice\nloudly", "«Nein» · «nein»", "Max in chat", "high")
+    assert observation.line() == "- 2026-10-14 · Said ‹no›, twice loudly · «‹Nein›, ‹nein›» · Max in chat · high"
     assert Observation.parse(observation.line()).statement == "Said ‹no›, twice loudly"
 
 
@@ -51,8 +51,8 @@ def test_observation_text_holds_no_arrow_that_a_history_line_would_split_at():
             f"- 2026-10-14 · created: no candidate matched a → b · {SOURCE}",
         ),
         (
-            Change("2026-11-20", "org", "[[Acme AG]]", "[[Beta GmbH]]", "Tobias in chat, 2026-11-20"),
-            "- 2026-11-20 · org: [[Acme AG]] → [[Beta GmbH]] · Tobias in chat, 2026-11-20",
+            Change("2026-11-20", "org", "[[Acme AG]]", "[[Beta GmbH]]", "Max in chat, 2026-11-20"),
+            "- 2026-11-20 · org: [[Acme AG]] → [[Beta GmbH]] · Max in chat, 2026-11-20",
         ),
     ],
 )
@@ -71,6 +71,6 @@ def test_the_examples_lines():
     body = Body.parse((EXAMPLE / "01_People" / "Hans Müller.md").read_text(encoding="utf-8").split("---\n", 2)[2])
     observations = [Observation.parse(line) for line in body.lines("Observations")]
     assert [o.confidence for o in observations] == ["high", "medium"]
-    assert observations[0].evidence == "Lieber Tobias"
+    assert observations[0].evidence == "Lieber Max"
     (created,) = [Change.parse(line) for line in body.lines("History")]
     assert created == Change("2026-10-14", "created", None, "no candidate matched hans.mueller@acme-ag.example", SOURCE)

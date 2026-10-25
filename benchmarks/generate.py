@@ -17,7 +17,7 @@ from orbit.sections import build
 FIRST = """Andrea Andreas Anna Barbara Beat Bruno Carla Christian Claudia Daniel Daniela Dominik Elena Elias Eva Fabian
 Franziska Gabriel Hans Heidi Irene Jakob Jana Jonas Julia Karin Katrin Lars Laura Lea Leon Lukas Manuel Marco Maria
 Markus Martin Michael Monika Nadine Nicole Nina Noah Oliver Patrick Peter Petra Philipp Regula Reto Roger Ruth Sabine
-Samuel Sandra Sara Silvia Simon Sonja Stefan Stefanie Susanne Thomas Tobias Ueli Urs Ursula Verena Walter Yvonne
+Samuel Sandra Sara Silvia Simon Sonja Stefan Stefanie Susanne Thomas Max Ueli Urs Ursula Verena Walter Yvonne
 """.split()
 LAST = """Ammann Bachmann Baumann Baumgartner Berger Bieri Blaser Bolliger Brunner Bucher Burkhalter Egli Fankhauser
 Fischer Frei Frey Fuchs Gerber Graf Gut Hofer Hofmann Huber Hug Imhof Iseli Jäggi Kaufmann Keller Kern Kessler Koch Kunz
@@ -42,14 +42,14 @@ def generate(root, people=5000, interactions=50000, seed=0):
     """Write a vault to `root`; the number of notes of each type."""
     rng = random.Random(seed)
     root = Path(root)
-    me_fields = {"id": ids.new("per", START, rng.randbytes(10)), "name": "Tobias", "me": True}
-    me_fields |= {"emails": ["tobias@meinefirma.example"], "created": START.date().isoformat()}
+    me_fields = {"id": ids.new("per", START, rng.randbytes(10)), "name": "Max", "me": True}
+    me_fields |= {"emails": ["max@meinefirma.example"], "created": START.date().isoformat()}
     (root / "01_People").mkdir(parents=True, exist_ok=True)
     text = frontmatter.render(
         {"type": "person"} | me_fields | {"updated": me_fields["created"]}, build([("Notes", [])])
     )
     (root / vault.ME).write_bytes(text.encode("utf-8"))  # before init, which takes its id: the same for the same seed
-    vault.init(root, "Tobias", now=START)
+    vault.init(root, "Max", now=START)
     me = schema.link("Me")
     written = dict.fromkeys(schema.TYPES, 0)
 

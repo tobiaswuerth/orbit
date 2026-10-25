@@ -58,8 +58,8 @@ def test_an_address_as_a_header_writes_it(crm):
     assert (best["name"], best["score"]) == (HANS, 1.0)
 
 
-def test_tobias_own_addresses_return_me(crm):
-    (me,) = resolve(crm, "person", emails=["tobias.privat@mail.example"])["candidates"]
+def test_max_own_addresses_return_me(crm):
+    (me,) = resolve(crm, "person", emails=["max.privat@mail.example"])["candidates"]
     assert (me["name"], me["me"], me["score"]) == ("Me", True, 1.0)
 
 

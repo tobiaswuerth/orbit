@@ -153,7 +153,7 @@ def test_write_gives_up_and_leaves_no_temporary_file(tmp_path, monkeypatch):
 
 def test_init_creates_a_vault(tmp_path):
     root = tmp_path / "crm"
-    created = vault.init(root, "Tobias", ["Tobias@MeineFirma.example", "tobias.privat@mail.example"], NOW)
+    created = vault.init(root, "Max", ["Max@MeineFirma.example", "max.privat@mail.example"], NOW)
     assert created == [
         "01_People/",
         "02_Organizations/",
@@ -213,7 +213,7 @@ def test_init_adds_what_lacks_beside_a_me_without_an_id_once_orbit_toml_exists(t
         (None, []),
         ("---\nid: [\n---\n", []),
         ("---\ntype: person\nname: Me\n---\n", []),
-        ("---\ntype: person\nemails: tobias@meinefirma.example\n---\n", ["tobias@meinefirma.example"]),
+        ("---\ntype: person\nemails: max@meinefirma.example\n---\n", ["max@meinefirma.example"]),
         ("---\ntype: person\nemails:\n  - a@x.example\n  - ''\n  - b@x.example\n---\n", ["a@x.example", "b@x.example"]),
     ],
 )
